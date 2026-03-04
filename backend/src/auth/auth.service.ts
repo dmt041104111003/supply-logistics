@@ -41,10 +41,13 @@ export class AuthService {
               coordinates: string | null;
             };
           }
-    | {
-        needProfile: true;
-        roles: { id: number; code: string }[];
-      }
+        | {
+            needProfile: true;
+            roles: {
+              id: number;
+              code: string;
+            }[];
+          }
   > {
     return this.verifyAndIssueTokenUseCase.execute(params);
   }

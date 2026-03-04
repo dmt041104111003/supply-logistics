@@ -5,7 +5,8 @@ export type WarehouseItem = {
   batchId: string;
   batchName: string;
   image: string | null;
-  mintedAt: string;
+  receivedAt: string;
+  outAt?: string | null;
   policyId?: string | null;
   status?: string;
 };
@@ -15,7 +16,8 @@ function mapItem(i: Record<string, unknown>): WarehouseItem {
     batchId: String(i?.batchId ?? ''),
     batchName: String(i?.batchName ?? ''),
     image: i?.image != null ? String(i.image) : null,
-    mintedAt: String(i?.mintedAt ?? ''),
+    receivedAt: String(i?.receivedAt ?? ''),
+    outAt: i?.outAt != null ? String(i.outAt) : null,
     policyId: i?.policyId != null ? String(i.policyId) : null,
     status: i?.status != null ? String(i.status) : 'IN_WAREHOUSE',
   };

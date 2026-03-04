@@ -20,7 +20,8 @@ export class WarehouseController {
       batchId: string;
       batchName: string;
       image: string | null;
-      mintedAt: Date;
+      receivedAt: Date;
+      outAt: Date | null;
       policyId: string | null;
       status: string;
     }[];

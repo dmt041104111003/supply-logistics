@@ -24,19 +24,19 @@ let PrismaWarehouseRepository = class PrismaWarehouseRepository {
                     select: { id: true, name: true, image: true, policyId: true },
                 },
             },
-            orderBy: { mintedAt: "desc" },
+            orderBy: { receivedAt: "desc" },
         });
-        const visible = (rows || []).filter((inv) => { var _a, _b; return ((_a = inv === null || inv === void 0 ? void 0 : inv.quantity) !== null && _a !== void 0 ? _a : 1) > 0 && String((_b = inv === null || inv === void 0 ? void 0 : inv.status) !== null && _b !== void 0 ? _b : "IN_WAREHOUSE") !== "BURNED"; });
+        const visible = (rows || []).filter((inv) => { var _a; return String((_a = inv === null || inv === void 0 ? void 0 : inv.status) !== null && _a !== void 0 ? _a : "IN_WAREHOUSE") !== "BURNED"; });
         return visible.map((inv) => {
-            var _a, _b, _c, _d, _e, _f, _g, _h;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j;
             return ({
                 batchId: inv.batchId,
                 batchName: (_b = (_a = inv.batch) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : inv.batchId,
                 image: (_d = (_c = inv.batch) === null || _c === void 0 ? void 0 : _c.image) !== null && _d !== void 0 ? _d : null,
-                quantity: (_e = inv.quantity) !== null && _e !== void 0 ? _e : 1,
-                mintedAt: inv.mintedAt,
-                policyId: (_g = (_f = inv.batch) === null || _f === void 0 ? void 0 : _f.policyId) !== null && _g !== void 0 ? _g : null,
-                status: (_h = inv.status) !== null && _h !== void 0 ? _h : "IN_WAREHOUSE",
+                receivedAt: inv.receivedAt,
+                outAt: (_f = (_e = inv.shippedAt) !== null && _e !== void 0 ? _e : inv.consumedAt) !== null && _f !== void 0 ? _f : null,
+                policyId: (_h = (_g = inv.batch) === null || _g === void 0 ? void 0 : _g.policyId) !== null && _h !== void 0 ? _h : null,
+                status: (_j = inv.status) !== null && _j !== void 0 ? _j : "IN_WAREHOUSE",
             });
         });
     }
@@ -48,19 +48,25 @@ let PrismaWarehouseRepository = class PrismaWarehouseRepository {
     async markAsShippedForProfile(profileId, batchId) {
         await this.prisma.warehouseInventory.updateMany({
             where: { batchId, profileId },
-            data: { status: "SHIPPED" },
+            data: { status: "ON_WAY", shippedAt: new Date(), lastMovedAt: new Date() },
         });
     }
-    async markAsBurnedForProfile(profileId, batchId) {
-        await this.prisma.warehouseInventory.deleteMany({
+    async markAsBurnedForProfile(profileId, batchId, burnTxHash) {
+        await this.prisma.warehouseInventory.updateMany({
             where: { batchId, profileId },
+            data: {
+                status: "CONSUMED",
+                consumedAt: new Date(),
+                burnTxHash: burnTxHash !== null && burnTxHash !== void 0 ? burnTxHash : null,
+                lastMovedAt: new Date(),
+            },
         });
     }
     async addToWarehouseForProfile(profileId, batchId) {
         await this.prisma.warehouseInventory.upsert({
             where: { batchId_profileId: { batchId, profileId } },
-            create: { batchId, profileId, quantity: 1 },
-            update: { quantity: { increment: 1 } },
+            create: { batchId, profileId, status: "IN_WAREHOUSE" },
+            update: { status: "IN_WAREHOUSE", shippedAt: null, lastMovedAt: new Date() },
         });
     }
     async findRecipientByRoadmap(profileId, batchId) {
@@ -77,7 +83,7 @@ let PrismaWarehouseRepository = class PrismaWarehouseRepository {
             return { recipientAddress: null };
         const senderWallet = profile.walletAddress.trim().toLowerCase();
         const batch = await prisma.productBatch.findUnique({
-            where: { code: bid },
+            where: { batchId: bid },
             select: {
                 minterProfileId: true,
                 minterProfile: { select: { walletAddress: true } },
@@ -89,22 +95,22 @@ let PrismaWarehouseRepository = class PrismaWarehouseRepository {
         if (minterWallet && senderWallet === minterWallet) {
             const firstHop = await prisma.roadmap.findFirst({
                 where: { batchId: bid },
-                orderBy: { hopIndex: "asc" },
-                select: { receiverAddress: true },
+                orderBy: { stepIndex: "asc" },
+                select: { toAddress: true },
             });
             return {
-                recipientAddress: (_e = (_d = firstHop === null || firstHop === void 0 ? void 0 : firstHop.receiverAddress) === null || _d === void 0 ? void 0 : _d.trim()) !== null && _e !== void 0 ? _e : null,
+                recipientAddress: (_e = (_d = firstHop === null || firstHop === void 0 ? void 0 : firstHop.toAddress) === null || _d === void 0 ? void 0 : _d.trim()) !== null && _e !== void 0 ? _e : null,
             };
         }
         const myHop = await prisma.roadmap.findMany({
             where: { batchId: bid },
-            orderBy: { hopIndex: "asc" },
-            select: { hopIndex: true, receiverAddress: true },
+            orderBy: { stepIndex: "asc" },
+            select: { stepIndex: true, toAddress: true },
         });
-        const idx = myHop.findIndex((r) => (r.receiverAddress || "").trim().toLowerCase() === senderWallet);
+        const idx = myHop.findIndex((r) => (r.toAddress || "").trim().toLowerCase() === senderWallet);
         if (idx < 0 || idx >= myHop.length - 1)
             return { recipientAddress: null };
-        const next = (_h = (_g = (_f = myHop[idx + 1]) === null || _f === void 0 ? void 0 : _f.receiverAddress) === null || _g === void 0 ? void 0 : _g.trim()) !== null && _h !== void 0 ? _h : null;
+        const next = (_h = (_g = (_f = myHop[idx + 1]) === null || _f === void 0 ? void 0 : _f.toAddress) === null || _g === void 0 ? void 0 : _g.trim()) !== null && _h !== void 0 ? _h : null;
         return { recipientAddress: next };
     }
 };

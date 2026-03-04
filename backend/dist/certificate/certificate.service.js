@@ -18,12 +18,16 @@ const certificate_repository_1 = require("./domain/certificate.repository");
 const list_certificates_use_case_1 = require("./application/use-cases/list-certificates.use-case");
 const get_certificate_by_id_use_case_1 = require("./application/use-cases/get-certificate-by-id.use-case");
 const create_certificate_use_case_1 = require("./application/use-cases/create-certificate.use-case");
+const update_certificate_use_case_1 = require("./application/use-cases/update-certificate.use-case");
+const delete_certificate_use_case_1 = require("./application/use-cases/delete-certificate.use-case");
 let CertificateService = class CertificateService {
-    constructor(repository, listCertificatesUseCase, getCertificateByIdUseCase, createCertificateUseCase) {
+    constructor(repository, listCertificatesUseCase, getCertificateByIdUseCase, createCertificateUseCase, updateCertificateUseCase, deleteCertificateUseCase) {
         this.repository = repository;
         this.listCertificatesUseCase = listCertificatesUseCase;
         this.getCertificateByIdUseCase = getCertificateByIdUseCase;
         this.createCertificateUseCase = createCertificateUseCase;
+        this.updateCertificateUseCase = updateCertificateUseCase;
+        this.deleteCertificateUseCase = deleteCertificateUseCase;
     }
     async list(issuerProfileId, options) {
         return this.listCertificatesUseCase.execute(issuerProfileId, options);
@@ -34,6 +38,26 @@ let CertificateService = class CertificateService {
     async create(issuerProfileId, data) {
         return this.createCertificateUseCase.execute(issuerProfileId, data);
     }
+    async update(id, issuerProfileId, data) {
+        return this.updateCertificateUseCase.execute(id, issuerProfileId, data);
+    }
+    async delete(id, issuerProfileId) {
+        return this.deleteCertificateUseCase.execute(id, issuerProfileId);
+    }
+    async setCertificatesForBatch(batchId, issuerProfileId, certificateIds) {
+        try {
+            await this.repository.setCertificatesForBatch(batchId, issuerProfileId, certificateIds);
+        }
+        catch (err) {
+            if (err instanceof Error && err.message.includes("Batch not found")) {
+                throw new common_1.BadRequestException(err.message);
+            }
+            throw err;
+        }
+    }
+    async getCertificateIdsByBatchId(batchId, issuerProfileId) {
+        return this.repository.getCertificateIdsByBatchId(batchId, issuerProfileId);
+    }
 };
 exports.CertificateService = CertificateService;
 exports.CertificateService = CertificateService = __decorate([
@@ -41,6 +65,8 @@ exports.CertificateService = CertificateService = __decorate([
     __param(0, (0, common_1.Inject)(certificate_repository_1.CERTIFICATE_REPOSITORY)),
     __metadata("design:paramtypes", [Object, list_certificates_use_case_1.ListCertificatesUseCase,
         get_certificate_by_id_use_case_1.GetCertificateByIdUseCase,
-        create_certificate_use_case_1.CreateCertificateUseCase])
+        create_certificate_use_case_1.CreateCertificateUseCase,
+        update_certificate_use_case_1.UpdateCertificateUseCase,
+        delete_certificate_use_case_1.DeleteCertificateUseCase])
 ], CertificateService);
 //# sourceMappingURL=certificate.service.js.map

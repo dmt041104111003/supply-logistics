@@ -58,7 +58,7 @@ let VerifyAndIssueTokenUseCase = class VerifyAndIssueTokenUseCase {
             sub: addr,
             stakeAddress: addr,
             profileId: profile.id,
-            role: profile.role.code,
+            role: profile.roleCode,
             displayName: profile.displayName,
             avatarUrl: profile.avatarUrl,
             location: profile.location,
@@ -69,7 +69,7 @@ let VerifyAndIssueTokenUseCase = class VerifyAndIssueTokenUseCase {
             token,
             profile: {
                 id: profile.id,
-                role: profile.role.code,
+                role: profile.roleCode,
                 displayName: profile.displayName,
                 avatarUrl: profile.avatarUrl,
                 location: (_a = profile.location) !== null && _a !== void 0 ? _a : null,

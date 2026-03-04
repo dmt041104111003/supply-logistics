@@ -36,6 +36,9 @@ export class ListOrdersForProfileUseCase {
         scriptOutputIndex: r.scriptOutputIndex,
         batchId: r.batchId,
         policyId: r.policyId,
+        scriptAddress: r.scriptAddress ?? null,
+        datumHash: r.datumHash ?? null,
+        datumJson: r.datumJson ?? null,
         recipientAddress: r.recipientAddress,
         senderAddress: r.senderAddress,
         ownerAddresses: Array.isArray(r.ownerAddresses)
@@ -46,6 +49,9 @@ export class ListOrdersForProfileUseCase {
         partialSignedByAddress: r.partialSignedByAddress ?? null,
         secondSignedByAddress: r.secondSignedByAddress ?? null,
         unlockTxHash: r.unlockTxHash ?? null,
+        outAt:
+          r.actualDeliveryAt ??
+          (String(r.status) === "DELIVERED" ? r.updatedAt ?? null : null),
       }));
   }
 }

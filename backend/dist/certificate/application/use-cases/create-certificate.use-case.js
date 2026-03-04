@@ -21,23 +21,40 @@ let CreateCertificateUseCase = class CreateCertificateUseCase {
     }
     async execute(issuerProfileId, data) {
         const title = (data.title || "").trim();
-        const batchId = (data.batchId || "").trim();
         const imageUrl = (data.imageUrl || "").trim();
-        if (!title || !batchId) {
-            throw new common_1.BadRequestException("title and batchId are required.");
+        const number = (data.number || "").trim();
+        const authority = (data.authority || "").trim();
+        const expiryRaw = data.expiryDate;
+        if (!title) {
+            throw new common_1.BadRequestException("title is required.");
         }
         if (!imageUrl) {
             throw new common_1.BadRequestException("imageUrl is required (upload image via POST /upload/image first).");
         }
-        const batchExists = await this.repository.batchExistsForIssuer(batchId, issuerProfileId);
-        if (!batchExists) {
-            throw new common_1.BadRequestException("Batch not found or you are not the minter.");
+        if (!number) {
+            throw new common_1.BadRequestException("Certificate number (No.) is required.");
+        }
+        if (!authority) {
+            throw new common_1.BadRequestException("Certificate authority is required.");
+        }
+        let expiryDate;
+        if (expiryRaw != null) {
+            const d = expiryRaw instanceof Date ? expiryRaw : new Date(String(expiryRaw));
+            if (Number.isNaN(d.getTime())) {
+                throw new common_1.BadRequestException("expiryDate is invalid.");
+            }
+            expiryDate = d;
         }
         return this.repository.createCertificate(issuerProfileId, {
             title,
-            batchId,
             imageUrl,
-            metadata: data.metadata,
+            number,
+            authority,
+            expiryDate,
+            documentType: data.documentType,
+            standardReference: data.standardReference,
+            scope: data.scope,
+            documentUrl: data.documentUrl,
         });
     }
 };

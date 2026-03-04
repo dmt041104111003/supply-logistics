@@ -9,6 +9,7 @@ import { createReadOnlyWallet, buildMetadata } from "./product.helpers";
 import {
   PRODUCT_REPOSITORY,
   ProductRepositoryPort,
+  type ProductBatchListItem,
 } from "./domain/product.repository";
 import { ListBatchesUseCase } from "./application/use-cases/list-batches.use-case";
 import { RecordProductTxUseCase } from "./application/use-cases/record-product-tx.use-case";
@@ -44,14 +45,12 @@ export class ProductService {
     });
   }
 
-  async listBatches(profileId: number): Promise<
-    { id: number; code: string; name: string; description: string | null; image: string | null; createdAt: Date; policyId: string | null }[]
-  > {
+  async listBatches(profileId: number): Promise<ProductBatchListItem[]> {
     return this.listBatchesUseCase.execute(profileId);
   }
 
-  async listRoadmap(batchCode: string): Promise<{ hopIndex: number; receiverAddress: string | null }[]> {
-    return this.listRoadmapUseCase.execute(batchCode);
+  async listRoadmap(batchId: string): Promise<{ stepIndex: number; toAddress: string | null }[]> {
+    return this.listRoadmapUseCase.execute(batchId);
   }
 
   async mint(params: {
@@ -261,7 +260,7 @@ export class ProductService {
     }
     return {
       policyId: batch.policyId,
-      assetName: batch.code,
+      assetName: batch.batchId,
       nftUnit: null,
     };
   }

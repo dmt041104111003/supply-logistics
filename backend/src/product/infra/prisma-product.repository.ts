@@ -17,64 +17,74 @@ export class PrismaProductRepository implements ProductRepositoryPort {
     profileId: number
   ): Promise<ProductBatchListItem[]> {
     const items = await (this.prisma as any).productBatch.findMany({
-      where: { minterProfileId: profileId },
+      where: { minterProfileId: profileId, revoked: false },
       select: {
         id: true,
-        code: true,
+        batchId: true,
         name: true,
         description: true,
         image: true,
         createdAt: true,
-        metadata: true,
         policyId: true,
+        sku: true,
+        grossWeightKg: true,
+        netWeightKg: true,
+        originSiteCode: true,
       },
-      orderBy: [{ createdAt: "asc" }, { code: "asc" }],
+      orderBy: [{ createdAt: "asc" }, { batchId: "asc" }],
     });
     if (!Array.isArray(items)) return [];
-    const visible = items.filter((b) => {
-      const meta = b.metadata as Record<string, unknown> | null;
-      const db = meta?._db as Record<string, unknown> | undefined;
-      return !db || db.revoked !== true;
-    });
-    return visible.map(
+    return items.map(
       (b): ProductBatchListItem => ({
         id: b.id,
-        code: b.code,
+        batchId: b.batchId,
         name: b.name,
         description: b.description ?? null,
         image: b.image ?? null,
         createdAt: b.createdAt,
         policyId: b.policyId ?? null,
+        sku: b.sku ?? null,
+        grossWeightKg: b.grossWeightKg ?? null,
+        netWeightKg: b.netWeightKg ?? null,
+        originSiteCode: b.originSiteCode ?? null,
       })
     );
   }
 
   async upsertBatchOnMint(params: MintBatchParams): Promise<void> {
     const {
-      code,
+      batchId,
       name,
       description,
       image,
       standard,
-      properties,
-      metadata,
       mintTxHash,
       policyId,
       minterProfileId,
+      expiryDate,
+      sku,
+      grossWeightKg,
+      netWeightKg,
+      originSiteCode,
+      referenceUtxo,
     } = params;
     await (this.prisma as any).productBatch.upsert({
-      where: { code },
+      where: { batchId },
       create: {
-        code,
+        batchId,
         name,
         description,
         image,
         standard,
-        properties,
-        metadata,
         mintTxHash,
         policyId: policyId ?? undefined,
         minterProfileId,
+        ...(expiryDate !== undefined && { expiryDate }),
+        ...(sku !== undefined && { sku }),
+        ...(grossWeightKg !== undefined && { grossWeightKg }),
+        ...(netWeightKg !== undefined && { netWeightKg }),
+        ...(originSiteCode !== undefined && { originSiteCode }),
+        ...(referenceUtxo !== undefined && { referenceUtxo }),
       },
       update: {
         mintTxHash,
@@ -82,33 +92,49 @@ export class PrismaProductRepository implements ProductRepositoryPort {
         description,
         image,
         standard,
-        properties,
-        metadata,
         policyId: policyId ?? undefined,
+        ...(expiryDate !== undefined && { expiryDate }),
+        ...(sku !== undefined && { sku }),
+        ...(grossWeightKg !== undefined && { grossWeightKg }),
+        ...(netWeightKg !== undefined && { netWeightKg }),
+        ...(originSiteCode !== undefined && { originSiteCode }),
+        ...(referenceUtxo !== undefined && { referenceUtxo }),
       },
     });
   }
 
   async findBatchByCode(code: string): Promise<ProductBatchSnapshot | null> {
     const batch = await (this.prisma as any).productBatch.findUnique({
-      where: { code },
+      where: { batchId: code },
     });
     if (!batch) return null;
     return {
-      code: batch.code,
+      batchId: batch.batchId,
       name: batch.name,
       description: batch.description ?? null,
       image: batch.image ?? null,
       standard: batch.standard ?? null,
-      properties: batch.properties,
-      metadata: batch.metadata,
       policyId: batch.policyId ?? null,
+      expiryDate: batch.expiryDate ?? null,
+      sku: batch.sku ?? null,
+      grossWeightKg: batch.grossWeightKg ?? null,
+      netWeightKg: batch.netWeightKg ?? null,
+      originSiteCode: batch.originSiteCode ?? null,
+      referenceUtxo: batch.referenceUtxo ?? null,
+      lastUpdateTxHash: batch.lastUpdateTxHash ?? null,
+      lastUpdateAt: batch.lastUpdateAt ?? null,
+      revokeTxHash: batch.revokeTxHash ?? null,
+      revokedAt: batch.revokedAt ?? null,
+      revoked: batch.revoked ?? false,
+      burnTxHash: batch.burnTxHash ?? null,
+      burnedAt: batch.burnedAt ?? null,
+      burned: batch.burned ?? false,
     };
   }
 
   async getMinterWalletAddressByBatchCode(code: string): Promise<string | null> {
     const row = await (this.prisma as any).productBatch.findUnique({
-      where: { code },
+      where: { batchId: code },
       select: {
         minterProfile: {
           select: {
@@ -122,34 +148,56 @@ export class PrismaProductRepository implements ProductRepositoryPort {
   }
 
   async updateBatch(params: UpdateBatchParams): Promise<void> {
-    const { code, name, description, image, standard, properties, metadata } = params;
+    const {
+      batchId,
+      name,
+      description,
+      image,
+      standard,
+      expiryDate,
+      lastUpdateTxHash,
+      lastUpdateAt,
+      sku,
+      grossWeightKg,
+      netWeightKg,
+      originSiteCode,
+    } = params;
     await (this.prisma as any).productBatch.update({
-      where: { code },
+      where: { batchId },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
         ...(image !== undefined && { image }),
         ...(standard !== undefined && { standard }),
-        properties,
-        metadata,
+        ...(expiryDate !== undefined && { expiryDate }),
+        ...(lastUpdateTxHash !== undefined && { lastUpdateTxHash }),
+        ...(lastUpdateAt !== undefined && { lastUpdateAt }),
+        ...(sku !== undefined && { sku }),
+        ...(grossWeightKg !== undefined && { grossWeightKg }),
+        ...(netWeightKg !== undefined && { netWeightKg }),
+        ...(originSiteCode !== undefined && { originSiteCode }),
       },
     });
   }
 
-  async markBatchRevoked(code: string, nextMetadata: object): Promise<void> {
+  async markBatchRevoked(code: string): Promise<void> {
     await (this.prisma as any).productBatch.update({
-      where: { code },
+      where: { batchId: code },
       data: {
-        metadata: nextMetadata,
+        revoked: true,
+        revokeTxHash: undefined,
+        revokedAt: new Date(),
       },
     });
   }
 
-  async markBatchBurned(code: string, nextMetadata: object): Promise<void> {
+  async markBatchBurned(code: string, burnTxHash: string): Promise<void> {
     await (this.prisma as any).productBatch.update({
-      where: { code },
+      where: { batchId: code },
       data: {
-        metadata: nextMetadata,
+        burned: true,
+        burnTxHash,
+        burnedAt: new Date(),
       },
     });
   }
@@ -157,17 +205,17 @@ export class PrismaProductRepository implements ProductRepositoryPort {
   async createRoadmaps(
     batchId: string,
     action: "MINT" | "UPDATE" | "REVOKE",
-    senderAddress: string,
+    fromAddress: string,
     receivers: string[],
     txHash: string
   ): Promise<void> {
     if (receivers.length === 0) return;
     await (this.prisma as any).roadmap.createMany({
-      data: receivers.map((receiverAddress, hopIndex) => ({
+      data: receivers.map((toAddress, stepIndex) => ({
         batchId,
-        senderAddress,
-        receiverAddress,
-        hopIndex,
+        fromAddress,
+        toAddress,
+        stepIndex,
         action,
         txHash,
       })),
@@ -180,15 +228,15 @@ export class PrismaProductRepository implements ProductRepositoryPort {
     if (!bid) return [];
     const rows = await prisma.roadmap.findMany({
       where: { batchId: bid },
-      orderBy: { hopIndex: "asc" },
-      select: { hopIndex: true, senderAddress: true, receiverAddress: true },
+      orderBy: { stepIndex: "asc" },
+      select: { stepIndex: true, fromAddress: true, toAddress: true },
     });
     if (!Array.isArray(rows)) return [];
     return rows.map(
-      (r: { hopIndex: number; senderAddress: string | null; receiverAddress: string | null }): ProductRoadmapHop => ({
-        hopIndex: r.hopIndex,
-        senderAddress: r.senderAddress,
-        receiverAddress: r.receiverAddress,
+      (r: { stepIndex: number; fromAddress: string | null; toAddress: string | null }): ProductRoadmapHop => ({
+        stepIndex: r.stepIndex,
+        fromAddress: r.fromAddress,
+        toAddress: r.toAddress,
       })
     );
   }

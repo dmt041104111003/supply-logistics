@@ -6,6 +6,9 @@ export interface DeliveryOrderRow {
   scriptOutputIndex: number;
   batchId: string;
   policyId: string | null;
+  scriptAddress: string | null;
+  datumHash: string | null;
+  datumJson: unknown | null;
   recipientAddress: string;
   senderAddress: string;
   ownerAddresses: string[];
@@ -14,6 +17,8 @@ export interface DeliveryOrderRow {
   partialSignedByAddress: string | null;
   secondSignedByAddress: string | null;
   unlockTxHash: string | null;
+  actualDeliveryAt?: Date | null;
+  updatedAt?: Date;
 }
 
 export interface OrderSummary {
@@ -22,6 +27,9 @@ export interface OrderSummary {
   scriptOutputIndex: number;
   batchId: string;
   policyId: string | null;
+  scriptAddress: string | null;
+  datumHash: string | null;
+  datumJson: unknown | null;
   recipientAddress: string;
   senderAddress: string;
   ownerAddresses: string[];
@@ -30,6 +38,7 @@ export interface OrderSummary {
   partialSignedByAddress: string | null;
   secondSignedByAddress: string | null;
   unlockTxHash: string | null;
+  outAt: Date | null;
 }
 
 export interface OrderRecordParams {
@@ -37,6 +46,9 @@ export interface OrderRecordParams {
   scriptOutputIndex?: number;
   batchId: string;
   policyId?: string;
+  scriptAddress?: string;
+  datumHash?: string;
+  datumJson?: unknown;
   recipientAddress: string;
   senderAddress: string;
   ownerAddresses: string[];

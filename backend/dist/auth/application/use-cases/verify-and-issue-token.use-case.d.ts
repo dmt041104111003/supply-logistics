@@ -15,7 +15,7 @@ export declare class VerifyAndIssueTokenUseCase {
     constructor(config: ConfigService, authRepository: AuthRepositoryPort, nonceStore: NonceStorePort);
     execute(params: VerifyAndIssueTokenParams): Promise<{
         needProfile: true;
-        roles: import("../../domain/auth.repository").Role[];
+        roles: import("../../domain/auth.repository").RoleOption[];
         token?: undefined;
         profile?: undefined;
     } | {

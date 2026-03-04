@@ -1,51 +1,82 @@
 export interface ProductBatchListItem {
   id: number;
-  code: string;
+  batchId: string;
   name: string;
   description: string | null;
   image: string | null;
   createdAt: Date;
   policyId: string | null;
+  sku: string | null;
+  grossWeightKg: number | null;
+  netWeightKg: number | null;
+  originSiteCode: string | null;
 }
 
 export interface ProductBatchSnapshot {
-  code: string;
+  batchId: string;
   name: string;
   description: string | null;
   image: string | null;
   standard: string | null;
-  properties: unknown;
-  metadata: unknown;
   policyId: string | null;
+  expiryDate: Date | null;
+  sku: string | null;
+  grossWeightKg: number | null;
+  netWeightKg: number | null;
+  originSiteCode: string | null;
+  referenceUtxo: string | null;
+  lastUpdateTxHash: string | null;
+  lastUpdateAt: Date | null;
+  revokeTxHash: string | null;
+  revokedAt: Date | null;
+  revoked: boolean;
+  burnTxHash: string | null;
+  burnedAt: Date | null;
+  burned: boolean;
 }
 
 export interface ProductRoadmapHop {
-  hopIndex: number;
-  senderAddress: string | null;
-  receiverAddress: string | null;
+  stepIndex: number;
+  fromAddress: string | null;
+  toAddress: string | null;
 }
 
 export interface MintBatchParams {
-  code: string;
+  batchId: string;
   name: string;
   description: string | null;
   image: string | null;
   standard: string;
-  properties: object;
-  metadata: object;
   mintTxHash: string;
   policyId?: string;
   minterProfileId: number;
+  expiryDate?: Date | string | null;
+  sku?: string | null;
+  grossWeightKg?: number | null;
+  netWeightKg?: number | null;
+  originSiteCode?: string | null;
+  referenceUtxo?: string | null;
 }
 
 export interface UpdateBatchParams {
-  code: string;
+  batchId: string;
   name?: string;
   description?: string | null;
   image?: string | null;
   standard?: string | null;
-  properties: object;
-  metadata: object;
+  expiryDate?: Date | string | null;
+  lastUpdateTxHash?: string | null;
+  lastUpdateAt?: Date | string | null;
+  sku?: string | null;
+  gtin?: string | null;
+  hsCode?: string | null;
+  grossWeightKg?: number | null;
+  netWeightKg?: number | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  originSiteCode?: string | null;
+  referenceUtxo?: string | null;
 }
 
 export interface ProductRepositoryPort {
@@ -55,26 +86,25 @@ export interface ProductRepositoryPort {
 
   upsertBatchOnMint(params: MintBatchParams): Promise<void>;
 
-  findBatchByCode(code: string): Promise<ProductBatchSnapshot | null>;
+  findBatchByCode(batchId: string): Promise<ProductBatchSnapshot | null>;
 
-  getMinterWalletAddressByBatchCode(code: string): Promise<string | null>;
+  getMinterWalletAddressByBatchCode(batchId: string): Promise<string | null>;
 
   updateBatch(params: UpdateBatchParams): Promise<void>;
 
   markBatchRevoked(
-    code: string,
-    nextMetadata: object
+    batchId: string
   ): Promise<void>;
 
   markBatchBurned(
-    code: string,
-    nextMetadata: object
+    batchId: string,
+    burnTxHash: string
   ): Promise<void>;
 
   createRoadmaps(
     batchId: string,
     action: "MINT" | "UPDATE" | "REVOKE",
-    senderAddress: string,
+    fromAddress: string,
     receivers: string[],
     txHash: string
   ): Promise<void>;

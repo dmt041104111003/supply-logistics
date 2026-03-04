@@ -1,36 +1,56 @@
 export interface ListCertificatesOptions {
-    batchId?: string;
     search?: string;
     page?: number;
     pageSize?: number;
+    attachedToBatchId?: string;
 }
 export interface CertificateListItem {
     id: number;
     title: string;
     imageUrl: string | null;
     issuedAt: Date;
-    batchId: string;
-    batchName: string;
-    productBatchCode: string;
-    productBatchName: string | null;
-    metadata: unknown;
+    number: string | null;
+    authority: string | null;
+    expiryDate: Date | null;
+    documentType: string | null;
+    standardReference: string | null;
+    scope: string | null;
+    documentUrl: string | null;
 }
 export interface CertificateDetail {
     id: number;
     title: string;
     imageUrl: string | null;
     issuedAt: Date;
-    metadata: unknown;
-    batchId: string;
-    batchName: string;
-    productBatchCode: string;
-    productBatchName: string | null;
+    number: string | null;
+    authority: string | null;
+    expiryDate: Date | null;
+    documentType: string | null;
+    standardReference: string | null;
+    scope: string | null;
+    documentUrl: string | null;
 }
 export interface CreateCertificateData {
     title: string;
-    batchId: string;
     imageUrl: string;
-    metadata?: Record<string, unknown>;
+    number?: string;
+    authority?: string;
+    expiryDate?: Date | string;
+    documentType?: string | null;
+    standardReference?: string | null;
+    scope?: string | null;
+    documentUrl?: string | null;
+}
+export interface UpdateCertificateData {
+    title?: string;
+    imageUrl?: string;
+    number?: string | null;
+    authority?: string | null;
+    expiryDate?: Date | string | null;
+    documentType?: string | null;
+    standardReference?: string | null;
+    scope?: string | null;
+    documentUrl?: string | null;
 }
 export interface CertificateRepositoryPort {
     listCertificates(issuerProfileId: number, options?: ListCertificatesOptions): Promise<{
@@ -38,11 +58,18 @@ export interface CertificateRepositoryPort {
         items: CertificateListItem[];
     }>;
     getCertificateById(id: number, issuerProfileId: number): Promise<CertificateDetail | null>;
-    batchExistsForIssuer(batchCode: string, issuerProfileId: number): Promise<boolean>;
     createCertificate(issuerProfileId: number, data: CreateCertificateData): Promise<{
         id: number;
         title: string;
         imageUrl: string | null;
     }>;
+    updateCertificate(id: number, issuerProfileId: number, data: UpdateCertificateData): Promise<{
+        id: number;
+        title: string;
+        imageUrl: string | null;
+    }>;
+    deleteCertificate(id: number, issuerProfileId: number): Promise<void>;
+    setCertificatesForBatch(batchId: string, issuerProfileId: number, certificateIds: number[]): Promise<void>;
+    getCertificateIdsByBatchId(batchId: string, issuerProfileId: number): Promise<number[]>;
 }
 export declare const CERTIFICATE_REPOSITORY = "CERTIFICATE_REPOSITORY";

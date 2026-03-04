@@ -2,22 +2,22 @@ export interface Wallet {
     address: string;
     lastLogin: Date;
 }
-export interface Role {
-    id: number;
-    code: string;
-}
 export interface Profile {
     id: number;
     walletAddress: string;
-    role: Role;
+    roleCode: string;
     displayName: string;
     avatarUrl: string | null;
     location: string | null;
     coordinates: string | null;
 }
+export interface RoleOption {
+    id: number;
+    code: string;
+}
 export interface UpsertProfileParams {
     walletAddress: string;
-    roleId: number;
+    roleCode: string;
     displayName: string;
     location: string | null;
     coordinates: string | null;
@@ -25,8 +25,7 @@ export interface UpsertProfileParams {
 export interface AuthRepositoryPort {
     upsertWallet(address: string, lastLogin: Date): Promise<Wallet>;
     findProfileByWalletAddress(address: string): Promise<Profile | null>;
-    findAllRoles(): Promise<Role[]>;
-    findRoleById(id: number): Promise<Role | null>;
+    findAllRoles(): Promise<RoleOption[]>;
     upsertProfile(params: UpsertProfileParams): Promise<Profile>;
     findProfileRoleCodeById(profileId: number): Promise<string | null>;
 }

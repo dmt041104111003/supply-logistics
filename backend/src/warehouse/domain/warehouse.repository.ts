@@ -2,7 +2,8 @@ export interface WarehouseInventoryItem {
   batchId: string;
   batchName: string;
   image: string | null;
-  mintedAt: Date;
+  receivedAt: Date;
+  outAt: Date | null;
   policyId: string | null;
   status: string;
 }
@@ -18,7 +19,7 @@ export interface WarehouseRepositoryPort {
 
   markAsShippedForProfile(profileId: number, batchId: string): Promise<void>;
 
-  markAsBurnedForProfile(profileId: number, batchId: string): Promise<void>;
+  markAsBurnedForProfile(profileId: number, batchId: string, burnTxHash?: string): Promise<void>;
 
   addToWarehouseForProfile(profileId: number, batchId: string): Promise<void>;
 

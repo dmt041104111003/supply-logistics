@@ -1,12 +1,16 @@
 import type { Certificate } from '../../lib/certificate';
 import { formatDate } from '../../utils/date';
+import { truncate } from '../../utils/string';
 
 type Props = {
   styles: Record<string, string>;
   items: Certificate[];
+  onDetail?: (cert: Certificate) => void;
+  onEdit?: (cert: Certificate) => void;
+  onDelete?: (cert: Certificate) => void;
 };
 
-export function CertTable({ styles, items }: Props) {
+export function CertTable({ styles, items, onDetail, onEdit, onDelete }: Props) {
   return (
     <div className={styles.tableWrap}>
       <table className={styles.table}>
@@ -17,56 +21,71 @@ export function CertTable({ styles, items }: Props) {
             <th>No.</th>
             <th>Authority</th>
             <th>Expiry</th>
-            <th>Product batch</th>
-            <th>Image</th>
             <th>Issued</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((cert) => (
+          {items.length === 0 ? (
+            <tr>
+              <td colSpan={7} style={{ textAlign: 'center', color: '#6b7280', padding: '1.5rem' }}>
+                No data
+              </td>
+            </tr>
+          ) : (
+            items.map((cert) => (
             <tr key={cert.id}>
               <td>{cert.id}</td>
-              <td>{cert.title}</td>
-              <td>{cert.number || '—'}</td>
-              <td>{cert.authority || '—'}</td>
+              <td title={cert.title}>
+                <span className={styles.cellTruncate}>{truncate(cert.title)}</span>
+              </td>
+              <td title={cert.number ?? ''}>
+                <span className={styles.cellTruncate}>{cert.number || '—'}</span>
+              </td>
+              <td title={cert.authority ?? ''}>
+                <span className={styles.cellTruncate}>{cert.authority || '—'}</span>
+              </td>
               <td>
                 {cert.expiryDate ? formatDate(cert.expiryDate) : '—'}
               </td>
-              <td>
-                <span title={cert.productBatchCode}>
-                  {cert.productBatchName ?? cert.productBatchCode}
-                </span>
-                {cert.productBatchName && (
-                  <br />
-                )}
-                {cert.productBatchName && (
-                  <small style={{ color: '#6b7280', fontSize: '0.8125rem' }}>
-                    {cert.productBatchCode}
-                  </small>
-                )}
-              </td>
-              <td>
-                {cert.imageUrl ? (
-                  <a
-                    href={cert.imageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open image"
-                    style={{
-                      fontSize: '0.8125rem',
-                      color: 'inherit',
-                      textDecoration: 'underline',
-                    }}
-                  >
-                    View
-                  </a>
-                ) : (
-                  '—'
-                )}
-              </td>
               <td>{formatDate(cert.issuedAt)}</td>
+              <td>
+                <div className={styles.actions}>
+                  {onDetail && (
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      onClick={() => onDetail(cert)}
+                      title="View details"
+                    >
+                      Detail
+                    </button>
+                  )}
+                  {onEdit && (
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      onClick={() => onEdit(cert)}
+                      title="Edit certificate"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className={styles.btnDanger}
+                      onClick={() => onDelete(cert)}
+                      title="Delete certificate"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </td>
             </tr>
-          ))}
+          ))
+          )}
         </tbody>
       </table>
     </div>

@@ -20,7 +20,7 @@ export class PrismaWarehouseRepository implements WarehouseRepositoryPort {
           select: { id: true, name: true, image: true, policyId: true },
         },
       },
-      orderBy: { mintedAt: "desc" },
+      orderBy: { receivedAt: "desc" },
     });
     const visible = (rows || []).filter(
       (inv: any) => String(inv?.status ?? "IN_WAREHOUSE") !== "BURNED"
@@ -30,7 +30,8 @@ export class PrismaWarehouseRepository implements WarehouseRepositoryPort {
         batchId: inv.batchId,
         batchName: inv.batch?.name ?? inv.batchId,
         image: inv.batch?.image ?? null,
-        mintedAt: inv.mintedAt,
+        receivedAt: inv.receivedAt,
+        outAt: inv.shippedAt ?? inv.consumedAt ?? null,
         policyId: inv.batch?.policyId ?? null,
         status: inv.status ?? "IN_WAREHOUSE",
       })
@@ -52,16 +53,23 @@ export class PrismaWarehouseRepository implements WarehouseRepositoryPort {
   ): Promise<void> {
     await (this.prisma as any).warehouseInventory.updateMany({
       where: { batchId, profileId },
-      data: { status: "SHIPPED" },
+      data: { status: "ON_WAY", shippedAt: new Date(), lastMovedAt: new Date() },
     });
   }
 
   async markAsBurnedForProfile(
     profileId: number,
-    batchId: string
+    batchId: string,
+    burnTxHash?: string
   ): Promise<void> {
-    await (this.prisma as any).warehouseInventory.deleteMany({
+    await (this.prisma as any).warehouseInventory.updateMany({
       where: { batchId, profileId },
+      data: {
+        status: "CONSUMED",
+        consumedAt: new Date(),
+        burnTxHash: burnTxHash ?? null,
+        lastMovedAt: new Date(),
+      },
     });
   }
 
@@ -71,8 +79,8 @@ export class PrismaWarehouseRepository implements WarehouseRepositoryPort {
   ): Promise<void> {
     await (this.prisma as any).warehouseInventory.upsert({
       where: { batchId_profileId: { batchId, profileId } },
-      create: { batchId, profileId },
-      update: {},
+      create: { batchId, profileId, status: "IN_WAREHOUSE" },
+      update: { status: "IN_WAREHOUSE", shippedAt: null, lastMovedAt: new Date() },
     });
   }
 
@@ -92,7 +100,7 @@ export class PrismaWarehouseRepository implements WarehouseRepositoryPort {
     const senderWallet = profile.walletAddress.trim().toLowerCase();
 
     const batch = await prisma.productBatch.findUnique({
-      where: { code: bid },
+      where: { batchId: bid },
       select: {
         minterProfileId: true,
         minterProfile: { select: { walletAddress: true } },
@@ -106,26 +114,26 @@ export class PrismaWarehouseRepository implements WarehouseRepositoryPort {
     if (minterWallet && senderWallet === minterWallet) {
       const firstHop = await prisma.roadmap.findFirst({
         where: { batchId: bid },
-        orderBy: { hopIndex: "asc" },
-        select: { receiverAddress: true },
+        orderBy: { stepIndex: "asc" },
+        select: { toAddress: true },
       });
       return {
-        recipientAddress: firstHop?.receiverAddress?.trim() ?? null,
+        recipientAddress: firstHop?.toAddress?.trim() ?? null,
       };
     }
 
     const myHop = await prisma.roadmap.findMany({
       where: { batchId: bid },
-      orderBy: { hopIndex: "asc" },
-      select: { hopIndex: true, receiverAddress: true },
+      orderBy: { stepIndex: "asc" },
+      select: { stepIndex: true, toAddress: true },
     });
     const idx = myHop.findIndex(
-      (r: { hopIndex: number; receiverAddress: string | null }) =>
-        (r.receiverAddress || "").trim().toLowerCase() === senderWallet,
+      (r: { stepIndex: number; toAddress: string | null }) =>
+        (r.toAddress || "").trim().toLowerCase() === senderWallet,
     );
     if (idx < 0 || idx >= myHop.length - 1)
       return { recipientAddress: null };
-    const next = myHop[idx + 1]?.receiverAddress?.trim() ?? null;
+    const next = myHop[idx + 1]?.toAddress?.trim() ?? null;
     return { recipientAddress: next };
   }
 }

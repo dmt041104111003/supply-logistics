@@ -66,6 +66,11 @@ export class PrismaOrderRepository implements OrderRepositoryPort {
         scriptOutputIndex,
         batchId: params.batchId.trim(),
         policyId: params.policyId?.trim() ?? null,
+        scriptAddress: params.scriptAddress?.trim() ?? null,
+        datumHash: params.datumHash?.trim() ?? null,
+        ...(params.datumJson !== undefined && {
+          datumJson: params.datumJson as Prisma.InputJsonValue,
+        }),
         recipientAddress: params.recipientAddress.trim(),
         senderAddress: params.senderAddress.trim(),
         ownerAddresses,
@@ -119,9 +124,14 @@ export class PrismaOrderRepository implements OrderRepositoryPort {
     unlockTxHash: string,
     secondSignedByAddress: string | null
   ): Promise<void> {
-    await this.prisma.$executeRaw(
-      Prisma.sql`UPDATE "DeliveryOrder" SET status = 'DELIVERED', "unlockTxHash" = ${unlockTxHash}, "secondSignedByAddress" = ${secondSignedByAddress} WHERE id = ${id}`,
-    );
+    const now = new Date();
+    await this.prisma.$executeRaw`
+      UPDATE "DeliveryOrder"
+      SET status = 'DELIVERED', "unlockTxHash" = ${unlockTxHash},
+          "secondSignedByAddress" = ${secondSignedByAddress},
+          "actualDeliveryAt" = ${now}
+      WHERE id = ${id}
+    `;
   }
 }
 

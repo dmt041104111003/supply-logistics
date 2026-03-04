@@ -21,8 +21,10 @@ import type { ProfileOption } from '../../types';
 import { uploadFileToIpfs } from '../../lib/ipfs';
 import { getAuthToken } from '../../lib/account';
 import { getBatchByAssetName, getProductRoadmap } from '../../lib/product';
+import { getCertificates, getCertificateIdsByBatch, setCertificatesForBatch } from '../../lib/certificate';
 import { encodeTraceId } from '@/utils/utils';
 import { ProductDialog } from '../../components/product/ProductDialog';
+import { ProductDetailDialog } from '../../components/product/ProductDetailDialog';
 
 const styles = { ...formStyles, ...tableStyles, ...buttonStyles, ...dialogStyles, ...paginationStyles };
 const PAGE_SIZE = 10;
@@ -36,11 +38,15 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
 
   const [code, setCode] = useState('');
   const [nameEn, setNameEn] = useState('Cam sành XNK 1.5kg');
   const [descriptionEn, setDescriptionEn] = useState('Sample traceability product');
   const [imageUrl, setImageUrl] = useState('');
+  const [sku, setSku] = useState('SKU-TRACE-001');
+  const [grossWeightKg, setGrossWeightKg] = useState('');
+  const [netWeightKg, setNetWeightKg] = useState('');
   const [expiryDate, setExpiryDate] = useState(nowForDateTimeLocal);
   const [receiverList, setReceiverList] = useState<string[]>([]);
   const [receiverDisplayNames, setReceiverDisplayNames] = useState<string[]>([]);
@@ -56,6 +62,8 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const imageInputRef = useRef<HTMLInputElement>(null);
   const lastAddedReceiverRef = useRef<string | null>(null);
+  const [certificateOptions, setCertificateOptions] = useState<{ id: number; title: string }[]>([]);
+  const [selectedCertificateIds, setSelectedCertificateIds] = useState<number[]>([]);
 
   useEffect(() => {
     const account = readAccountFromToken();
@@ -87,12 +95,27 @@ export default function ProductsPage() {
     }
     const items: any[] = Array.isArray(data?.items) ? data.items : [];
     const mapped: Product[] = items
-      .map((b: { id?: number; code?: string; name?: string; description?: string | null; image?: string | null }) => ({
+      .map((b: {
+        id?: number;
+        batchId?: string;
+        name?: string;
+        description?: string | null;
+        image?: string | null;
+        sku?: string | null;
+        grossWeightKg?: number | null;
+        netWeightKg?: number | null;
+        originSiteCode?: string | null;
+      }) => ({
         id: Number(b?.id ?? 0),
-        code: String(b?.code ?? ''),
+        code: String(b?.batchId ?? ''),
         nameEn: String(b?.name ?? ''),
         descriptionEn: b?.description != null ? String(b.description) : null,
         imageUrl: b?.image ? String(b.image) : null,
+        sku: b?.sku ?? null,
+        grossWeightKg:
+          b?.grossWeightKg != null ? Number(b.grossWeightKg) : null,
+        netWeightKg: b?.netWeightKg != null ? Number(b.netWeightKg) : null,
+        originSiteCode: b?.originSiteCode ?? null,
       }))
       .filter((p) => !!p.code);
     setProducts(mapped);
@@ -175,6 +198,9 @@ export default function ProductsPage() {
     setNameEn('Cam sành XNK 1.5kg');
     setDescriptionEn('Sample traceability product');
     setImageUrl('');
+    setSku('SKU-TRACE-001');
+    setGrossWeightKg('');
+    setNetWeightKg('');
     setExpiryDate(nowForDateTimeLocal());
     setReceiverList([]);
     setReceiverDisplayNames([]);
@@ -184,6 +210,7 @@ export default function ProductsPage() {
     setMinterCoordinates('');
     setError('');
     setOpen(false);
+    setSelectedCertificateIds([]);
   };
 
   const loadProfiles = async (): Promise<ProfileOption[]> => {
@@ -200,6 +227,17 @@ export default function ProductsPage() {
     return list;
   };
 
+  const loadCertificateOptions = async () => {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const { items } = await getCertificates(token, { pageSize: 500 });
+      setCertificateOptions(items.map((c) => ({ id: c.id, title: c.title })));
+    } catch {
+      setCertificateOptions([]);
+    }
+  };
+
   const openAdd = () => {
     resetForm();
     setCode(randomAssetName());
@@ -207,6 +245,8 @@ export default function ProductsPage() {
     setMinterLocation(account?.location ?? '');
     setMinterCoordinates(account?.coordinates ?? '');
     void loadProfiles();
+    setSelectedCertificateIds([]);
+    void loadCertificateOptions();
     setOpen(true);
   };
 
@@ -216,6 +256,9 @@ export default function ProductsPage() {
     setNameEn(p.nameEn);
     setDescriptionEn(p.descriptionEn ?? '');
     setImageUrl(p.imageUrl ?? '');
+    setSku(p.sku ?? '');
+    setGrossWeightKg(p.grossWeightKg != null ? String(p.grossWeightKg) : '');
+    setNetWeightKg(p.netWeightKg != null ? String(p.netWeightKg) : '');
     setError('');
     const account = readAccountFromToken();
     setMinterLocation(account?.location ?? '');
@@ -226,6 +269,12 @@ export default function ProductsPage() {
     const token = getAuthToken();
     if (token) {
       try {
+        const ids = await getCertificateIdsByBatch(token, p.code);
+        setSelectedCertificateIds(ids);
+      } catch {
+        setSelectedCertificateIds([]);
+      }
+      try {
         const roadmap = await getProductRoadmap(token, p.code);
         const list: string[] = [];
         const names: string[] = [];
@@ -233,7 +282,7 @@ export default function ProductsPage() {
         const coords: string[] = [];
 
         roadmap.forEach((hop) => {
-          const addr = hop.receiverAddress?.trim();
+          const addr = hop.toAddress?.trim();
           if (!addr) return;
           const prof = existingProfiles.find(
             (x) => x.walletAddress.trim().toLowerCase() === addr.toLowerCase(),
@@ -255,6 +304,7 @@ export default function ProductsPage() {
       }
     }
 
+    void loadCertificateOptions();
     setOpen(true);
   };
 
@@ -293,6 +343,9 @@ export default function ProductsPage() {
     const properties: Record<string, unknown> = {
       ngayHetHan: effectiveExpiry,
       current_holder_id: account.stakeAddress,
+      sku: sku || undefined,
+      grossWeightKg: grossWeightKg ? Number(grossWeightKg) : undefined,
+      netWeightKg: netWeightKg ? Number(netWeightKg) : undefined,
     };
 
     setLoading(true);
@@ -343,6 +396,7 @@ export default function ProductsPage() {
               assetName,
               profileId,
               name: nameEn,
+              description: descriptionEn || undefined,
               image: effectiveImage,
               standard: 'Traceability-v1',
               properties,
@@ -353,6 +407,7 @@ export default function ProductsPage() {
               txHash,
               assetName,
               name: nameEn,
+              description: descriptionEn || undefined,
               image: effectiveImage,
               minterProfileId: profileId,
               policyId: data.policyId,
@@ -370,6 +425,11 @@ export default function ProductsPage() {
           const confirmData = await confirmRes.json();
           throw new Error(confirmData?.message || confirmData?.error || 'Confirm failed.');
         }
+      }
+
+      try {
+        await setCertificatesForBatch(token, assetName, selectedCertificateIds);
+      } catch {
       }
 
       await loadBatches();
@@ -534,6 +594,7 @@ export default function ProductsPage() {
       <ProductsTable
         styles={styles}
         items={paginatedList}
+        onDetail={setDetailProduct}
         onEdit={openEdit}
         onRevoke={handleRevoke}
         onDownloadQr={handleDownloadQr}
@@ -542,6 +603,7 @@ export default function ProductsPage() {
       <ProductsCards
         styles={styles}
         items={paginatedList}
+        onDetail={setDetailProduct}
         onEdit={openEdit}
         onRevoke={handleRevoke}
         onDownloadQr={handleDownloadQr}
@@ -565,6 +627,9 @@ export default function ProductsPage() {
         code={code}
         nameEn={nameEn}
         descriptionEn={descriptionEn}
+        sku={sku}
+        grossWeightKg={grossWeightKg}
+        netWeightKg={netWeightKg}
         expiryDate={expiryDate}
         receiverList={receiverList}
         receiverDisplayNames={receiverDisplayNames}
@@ -579,6 +644,9 @@ export default function ProductsPage() {
         onSubmit={handleSubmit}
         onNameChange={setNameEn}
         onDescriptionChange={setDescriptionEn}
+        onSkuChange={setSku}
+        onGrossWeightChange={setGrossWeightKg}
+        onNetWeightChange={setNetWeightKg}
         onExpiryChange={setExpiryDate}
         onAddReceiverFromProfile={addReceiverFromProfile}
         onReceiverLocationsChange={setReceiverLocations}
@@ -588,6 +656,15 @@ export default function ProductsPage() {
         onImageUrlChange={setImageUrl}
         onUploadClick={() => imageInputRef.current?.click()}
         onImageUpload={handleImageUpload}
+        certificateOptions={certificateOptions}
+        selectedCertificateIds={selectedCertificateIds}
+        onCertificateIdsChange={setSelectedCertificateIds}
+      />
+
+      <ProductDetailDialog
+        open={!!detailProduct}
+        product={detailProduct}
+        onClose={() => setDetailProduct(null)}
       />
 
     </>

@@ -12,6 +12,9 @@ type Props = {
   code: string;
   nameEn: string;
   descriptionEn: string;
+  sku: string;
+  grossWeightKg: string;
+  netWeightKg: string;
   expiryDate: string;
   receiverList: string[];
   receiverDisplayNames: string[];
@@ -22,10 +25,16 @@ type Props = {
   minterCoordinates: string;
   imageUrl: string;
   imageInputRef: RefObject<HTMLInputElement | null>;
+  certificateOptions: { id: number; title: string }[];
+  selectedCertificateIds: number[];
+  onCertificateIdsChange: (ids: number[]) => void;
   onClose: () => void;
   onSubmit: (e: FormEvent) => void;
   onNameChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
+  onSkuChange: (v: string) => void;
+  onGrossWeightChange: (v: string) => void;
+  onNetWeightChange: (v: string) => void;
   onExpiryChange: (v: string) => void;
   onAddReceiverFromProfile: (profile: ProfileOption) => void;
   onReceiverLocationsChange: (v: string) => void;
@@ -48,6 +57,9 @@ export function ProductDialog(props: Props) {
     code,
     nameEn,
     descriptionEn,
+    sku,
+    grossWeightKg,
+    netWeightKg,
     expiryDate,
     receiverList,
     receiverDisplayNames,
@@ -58,10 +70,16 @@ export function ProductDialog(props: Props) {
     minterCoordinates,
     imageUrl,
     imageInputRef,
+    certificateOptions,
+    selectedCertificateIds,
+    onCertificateIdsChange,
     onClose,
     onSubmit,
     onNameChange,
     onDescriptionChange,
+    onSkuChange,
+    onGrossWeightChange,
+    onNetWeightChange,
     onExpiryChange,
     onAddReceiverFromProfile,
     onReceiverLocationsChange,
@@ -121,10 +139,42 @@ export function ProductDialog(props: Props) {
               />
             </div>
             <div className={styles.formGroup}>
+              <label className={styles.label}>SKU (optional)</label>
+              <input
+                className={styles.input}
+                value={sku}
+                onChange={(e) => onSkuChange(e.target.value)}
+                placeholder="Internal SKU"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Weight (optional)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input
+                  className={styles.input}
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={grossWeightKg}
+                  onChange={(e) => onGrossWeightChange(e.target.value)}
+                  placeholder="Gross weight (kg)"
+                />
+                <input
+                  className={styles.input}
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={netWeightKg}
+                  onChange={(e) => onNetWeightChange(e.target.value)}
+                  placeholder="Net weight (kg)"
+                />
+              </div>
+            </div>
+            <div className={styles.formGroup}>
               <label className={styles.label}>Description</label>
               <textarea
                 className={styles.textarea}
-                rows={4}
+                rows={3}
                 value={descriptionEn}
                 onChange={(e) => onDescriptionChange(e.target.value)}
                 placeholder="Enter product description"
@@ -139,6 +189,83 @@ export function ProductDialog(props: Props) {
                 onChange={(e) => onExpiryChange(e.target.value)}
                 min={new Date().toISOString().slice(0, 16)}
               />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Import certificates</label>
+              <p className={styles.formHint} style={{ marginBottom: 6 }}>
+                Attach certificates to this product. Create certificates in Certificates first, then select them here.
+              </p>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                <select
+                  className={styles.input}
+                  style={{ flex: '1 1 200px' }}
+                  value=""
+                  onChange={(e) => {
+                    const id = parseInt(e.target.value, 10);
+                    if (Number.isNaN(id)) return;
+                    if (!selectedCertificateIds.includes(id)) {
+                      onCertificateIdsChange([...selectedCertificateIds, id]);
+                    }
+                    requestAnimationFrame(() => {
+                      (e.target as HTMLSelectElement).value = '';
+                    });
+                  }}
+                >
+                  <option value="">Select certificate to attach</option>
+                  {certificateOptions
+                    .filter((c) => !selectedCertificateIds.includes(c.id))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title} (#{c.id})
+                      </option>
+                    ))}
+                </select>
+              </div>
+              {selectedCertificateIds.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {selectedCertificateIds.map((id) => {
+                    const cert = certificateOptions.find((c) => c.id === id);
+                    return (
+                      <div
+                        key={id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          background: 'var(--accent-bg, #eff6ff)',
+                          fontSize: 14,
+                        }}
+                      >
+                        <span>{cert ? cert.title : `Certificate`} (#{id})</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onCertificateIdsChange(selectedCertificateIds.filter((x) => x !== id))
+                          }
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#ef4444',
+                            fontWeight: 600,
+                            fontSize: 16,
+                            lineHeight: 1,
+                            padding: '2px 6px',
+                          }}
+                          aria-label="Remove"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {certificateOptions.length === 0 && (
+                <p className={styles.formHint}>No certificates yet. Add them in Certificates.</p>
+              )}
             </div>
             <div className={styles.formGroup}>
               <label className={styles.label}>Receivers</label>

@@ -4,7 +4,6 @@ import {
   ProfileBasic,
   ProfileListItem,
   ProfileRepositoryPort,
-  Role,
   UpdatedProfileWithRelations,
   UpdateProfileData,
 } from "../domain/profile.repository";
@@ -20,7 +19,7 @@ export class PrismaProfileRepository implements ProfileRepositoryPort {
         displayName: true,
         location: true,
         coordinates: true,
-        role: { select: { code: true } },
+        roleCode: true,
       },
       orderBy: { displayName: "asc" },
     });
@@ -30,22 +29,14 @@ export class PrismaProfileRepository implements ProfileRepositoryPort {
         displayName: p.displayName,
         location: p.location ?? null,
         coordinates: p.coordinates ?? null,
-        role: p.role?.code ?? null,
+        role: p.roleCode ?? null,
       })
     );
   }
 
-  async findRoleByCode(code: string): Promise<Role | null> {
-    const role = await this.prisma.role.findUnique({
-      where: { code },
-    });
-    if (!role) return null;
-    return { id: role.id, code: role.code };
-  }
-
-  async listProfilesByRoleId(roleId: number): Promise<ProfileBasic[]> {
+  async listProfilesByRoleCode(roleCode: string): Promise<ProfileBasic[]> {
     const profiles = await this.prisma.profile.findMany({
-      where: { roleId },
+      where: { roleCode },
       select: { id: true, displayName: true, walletAddress: true },
       orderBy: { displayName: "asc" },
     });
@@ -73,7 +64,6 @@ export class PrismaProfileRepository implements ProfileRepositoryPort {
           coordinates: data.coordinates || null,
         }),
       },
-      include: { role: true, wallet: true },
     });
 
     return {
@@ -83,7 +73,7 @@ export class PrismaProfileRepository implements ProfileRepositoryPort {
       avatarUrl: profile.avatarUrl ?? null,
       location: profile.location ?? null,
       coordinates: profile.coordinates ?? null,
-      roleCode: profile.role.code,
+      roleCode: profile.roleCode,
     };
   }
 
@@ -96,7 +86,6 @@ export class PrismaProfileRepository implements ProfileRepositoryPort {
       data: {
         avatarUrl,
       },
-      include: { role: true, wallet: true },
     });
 
     return {
@@ -106,7 +95,7 @@ export class PrismaProfileRepository implements ProfileRepositoryPort {
       avatarUrl: profile.avatarUrl ?? null,
       location: profile.location ?? null,
       coordinates: profile.coordinates ?? null,
-      roleCode: profile.role.code,
+      roleCode: profile.roleCode,
     };
   }
 }

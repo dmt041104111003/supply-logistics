@@ -122,6 +122,9 @@ export class OrderController {
       recipientAddress: body.recipientAddress,
       senderAddress: body.senderAddress,
       ownerAddresses: body.ownerAddresses,
+      scriptAddress: body.scriptAddress,
+      datumHash: body.datumHash,
+      datumJson: body.datumJson,
     });
   }
 
@@ -143,6 +146,7 @@ export class OrderController {
       partialSignedByAddress: string | null;
       secondSignedByAddress: string | null;
       unlockTxHash: string | null;
+      outAt: string | null;
     }[];
   }> {
     if (!token || typeof token !== "string" || !token.trim()) {
@@ -150,7 +154,12 @@ export class OrderController {
     }
     const profileId = await this.auth.getProfileIdFromToken(token.trim());
     const deliveries = await this.order.listOrdersForProfile(profileId);
-    return { deliveries };
+    return {
+      deliveries: deliveries.map((d) => ({
+        ...d,
+        outAt: d.outAt ? d.outAt.toISOString() : null,
+      })),
+    };
   }
 
   @Post("deliveries/:id/save-partial-tx")

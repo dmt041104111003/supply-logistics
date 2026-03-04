@@ -9,13 +9,15 @@ import Pagination from '../../components/Pagination';
 import { readAccountFromToken, getAuthToken } from '../../lib/account';
 import {
   getCertificates,
+  deleteCertificate,
   type Certificate,
 } from '../../lib/certificate';
-import { getBatchesList } from '../../lib/product';
 import { CertHeader } from '../../components/certificate/CertHeader';
 import { CertSearch } from '../../components/certificate/CertSearch';
 import { CertTable } from '../../components/certificate/CertTable';
+import { CertCards } from '../../components/certificate/CertCards';
 import { CertCreateDialog } from '../../components/certificate/CertDialog';
+import { CertDetailDialog } from '../../components/certificate/CertDetailDialog';
 
 const styles = { ...formStyles, ...tableStyles, ...buttonStyles };
 const PAGE_SIZE = 10;
@@ -30,7 +32,8 @@ export default function CertificatePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [batchOptions, setBatchOptions] = useState<{ id: string; name: string; policyId: string | null }[]>([]);
+  const [editingCert, setEditingCert] = useState<Certificate | null>(null);
+  const [detailCert, setDetailCert] = useState<Certificate | null>(null);
 
   useEffect(() => {
     const account = readAccountFromToken();
@@ -68,24 +71,9 @@ export default function CertificatePage() {
     }
   };
 
-  const loadBatches = async () => {
-    const token = getAuthToken();
-    if (!token) return;
-    try {
-      const batches = await getBatchesList(token);
-      setBatchOptions(batches.map((b) => ({ id: b.code, name: b.name, policyId: b.policyId ?? null })));
-    } catch {
-      setBatchOptions([]);
-    }
-  };
-
   useEffect(() => {
     void loadCertificates();
   }, [page, searchQuery]);
-
-  useEffect(() => {
-    if (createDialogOpen) void loadBatches();
-  }, [createDialogOpen]);
 
   useEffect(() => {
     setPage(1);
@@ -98,11 +86,27 @@ export default function CertificatePage() {
     if (page > totalPages) setPage(1);
   }, [page, totalPages]);
 
+  const handleDelete = async (cert: Certificate) => {
+    if (!confirm(`Delete certificate "${cert.title}" (ID ${cert.id})?`)) return;
+    const token = getAuthToken();
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      return;
+    }
+    setError('');
+    try {
+      await deleteCertificate(token, cert.id);
+      await loadCertificates();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete certificate.');
+    }
+  };
+
   return (
     <>
       <CertHeader
         styles={styles}
-        onAdd={() => setCreateDialogOpen(true)}
+        onAdd={() => { setEditingCert(null); setCreateDialogOpen(true); }}
       />
 
       <CertSearch
@@ -117,36 +121,38 @@ export default function CertificatePage() {
         </p>
       )}
 
-      {loading && items.length === 0 ? (
-        <p className={styles.formHint}>Loading...</p>
-      ) : items.length === 0 ? (
-        <div className={styles.formCard}>
-          <p className={styles.formHint}>
-            No certificates yet. Add a certificate for your product batch (e.g. quality
-            inspection, test report stored on IPFS).
-          </p>
-        </div>
-      ) : (
-        <>
-          <CertTable
-            styles={styles}
-            items={paginatedList}
-          />
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            totalItems={total}
-            pageSize={PAGE_SIZE}
-          />
-        </>
-      )}
+      <CertTable
+        styles={styles}
+        items={paginatedList}
+        onDetail={setDetailCert}
+        onEdit={(c) => { setEditingCert(c); setCreateDialogOpen(true); }}
+        onDelete={handleDelete}
+      />
+      <CertCards
+        styles={styles}
+        items={paginatedList}
+        onDetail={setDetailCert}
+        onEdit={(c) => { setEditingCert(c); setCreateDialogOpen(true); }}
+        onDelete={handleDelete}
+      />
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalItems={total}
+        pageSize={PAGE_SIZE}
+      />
 
       <CertCreateDialog
         open={createDialogOpen}
-        batchOptions={batchOptions}
-        onClose={() => setCreateDialogOpen(false)}
+        onClose={() => { setCreateDialogOpen(false); setEditingCert(null); }}
         onSuccess={loadCertificates}
+        editingCert={editingCert}
+      />
+      <CertDetailDialog
+        open={!!detailCert}
+        cert={detailCert}
+        onClose={() => setDetailCert(null)}
       />
     </>
   );

@@ -14,49 +14,53 @@ model Wallet {
   profiles Profile[]
 }
 
-model Role {
-  id   Int    @id @default(autoincrement())
-  code String @unique
-
-  profiles Profile[]
-}
-
 model Profile {
   id            Int     @id @default(autoincrement())
   walletAddress String  @unique
-  roleId        Int
+  roleCode      String
   displayName   String
   avatarUrl     String?
   location      String?
   coordinates   String?
 
   wallet Wallet @relation(fields: [walletAddress], references: [address])
-  role   Role   @relation(fields: [roleId], references: [id])
-
-  mintedBatches       ProductBatch[]   @relation("ProfileBatches")
-  issuedCertificates  Certificate[]     @relation("CertificateIssuer")
-  warehouseInventory  WarehouseInventory[]   @relation("WarehouseOwner")
+  mintedBatches       ProductBatch[]        @relation("ProfileBatches")
+  issuedCertificates  Certificate[]         @relation("CertificateIssuer")
+  subjectCertificates Certificate[]         @relation("CertificateSubject")
+  warehouseInventory  WarehouseInventory[]  @relation("WarehouseOwner")
 }
 
 model ProductBatch {
-  id              Int      @id @default(autoincrement())
-  code            String   @unique 
-  name            String
-  description     String?
-  image           String?
-  standard        String?
-  properties      Json?
-  metadata        Json?
-  mintTxHash      String?
-  policyId        String?
-  createdAt       DateTime @default(now())
+  id               Int      @id @default(autoincrement())
+  batchId          String   @unique
+  name             String
+  description      String?
+  image            String?
+  sku              String?
+  grossWeightKg    Float?
+  netWeightKg      Float?
+  originSiteCode   String?
+  standard         String?
+  mintTxHash       String?
+  policyId         String?
+  expiryDate       DateTime?
+  referenceUtxo    String?
+  lastUpdateTxHash String?
+  lastUpdateAt     DateTime?
+  revokeTxHash     String?
+  revokedAt        DateTime?
+  revoked          Boolean  @default(false)
+  burnTxHash       String?
+  burnedAt         DateTime?
+  burned           Boolean  @default(false)
+  createdAt        DateTime @default(now())
 
-  minterProfileId Int
-  minterProfile   Profile  @relation("ProfileBatches", fields: [minterProfileId], references: [id])
+  minterProfileId  Int
+  minterProfile    Profile  @relation("ProfileBatches", fields: [minterProfileId], references: [id])
 
-  certificates    Certificate[]
-  roadmaps        Roadmap[]
-  inventories     WarehouseInventory[]
+  certificates     Certificate[]
+  roadmaps         Roadmap[]
+  inventories      WarehouseInventory[]
 }
 
 model WarehouseInventory {
@@ -64,9 +68,18 @@ model WarehouseInventory {
   batchId     String
   profileId   Int
   status      String    @default("IN_WAREHOUSE")
-  mintedAt    DateTime  @default(now())
+  receivedAt  DateTime  @default(now())
+  warehouseCode String?
+  zone          String?
+  aisle         String?
+  rack          String?
+  bin           String?
+  lastMovedAt   DateTime?
+  shippedAt     DateTime?
+  consumedAt    DateTime?
+  burnTxHash    String?
 
-  batch   ProductBatch @relation(fields: [batchId], references: [code], onDelete: Cascade)
+  batch   ProductBatch @relation(fields: [batchId], references: [batchId], onDelete: Cascade)
   profile Profile      @relation("WarehouseOwner", fields: [profileId], references: [id], onDelete: Cascade)
 
   @@unique([batchId, profileId])
@@ -80,25 +93,38 @@ model Certificate {
   number           String?
   authority        String?
   expiryDate       DateTime?
-
-  batchId          String
-  batch            ProductBatch @relation(fields: [batchId], references: [code])
+  documentType     String?
+  standardReference String?
+  scope            String?
+  documentUrl      String?
 
   issuerProfileId  Int
   issuerProfile    Profile      @relation("CertificateIssuer", fields: [issuerProfileId], references: [id])
+  subjectProfileId Int?
+  subjectProfile   Profile?     @relation("CertificateSubject", fields: [subjectProfileId], references: [id])
+
+  productBatches   ProductBatch[]
 }
 
 model Roadmap {
   id              Int      @id @default(autoincrement())
   batchId         String
-  senderAddress   String   @default("")
-  receiverAddress String
-  hopIndex        Int      @default(0)
+  fromAddress     String   @default("")
+  toAddress       String
+  stepIndex       Int      @default(0)
   action          String
   txHash          String?
   createdAt       DateTime @default(now())
+  legType         String?
+  transportMode   String?
+  carrierName     String?
+  routeCode       String?
+  plannedDepartureAt DateTime?
+  plannedArrivalAt   DateTime?
+  actualDepartureAt  DateTime?
+  actualArrivalAt    DateTime?
 
-  batch           ProductBatch @relation(fields: [batchId], references: [code], onDelete: Cascade)
+  batch           ProductBatch @relation(fields: [batchId], references: [batchId], onDelete: Cascade)
 }
 
 enum DeliveryStatus {
@@ -112,6 +138,9 @@ model DeliveryOrder {
   scriptOutputIndex      Int                @default(0)
   batchId                String
   policyId               String?
+  scriptAddress          String?
+  datumHash              String?
+  datumJson              Json?
   recipientAddress       String
   senderAddress          String
   ownerAddresses         Json
@@ -122,6 +151,20 @@ model DeliveryOrder {
   unlockTxHash           String?
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
+  shipmentNo             String?
+  customerCode           String?
+  shipToName             String?
+  shipToAddress          String?
+  shipToCity             String?
+  shipToCountry          String?
+  shipToPhone            String?
+  carrierName            String?
+  transportMode          String?
+  trackingNumber         String?
+  plannedPickupAt        DateTime?
+  plannedDeliveryAt      DateTime?
+  actualPickupAt         DateTime?
+  actualDeliveryAt       DateTime?
 
   @@unique([lockTxHash, scriptOutputIndex])
 }

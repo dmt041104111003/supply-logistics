@@ -1,29 +1,42 @@
 import type { Product } from '../../types';
+import { truncate } from '../../utils/string';
 
 type Props = {
   styles: Record<string, string>;
   items: Product[];
+  onDetail?: (p: Product) => void;
   onEdit: (p: Product) => void;
   onRevoke: (id: number) => void;
   onDownloadQr: (p: Product) => void;
 };
 
-export function ProductsCards({ styles, items, onEdit, onRevoke, onDownloadQr }: Props) {
+export function ProductsCards({ styles, items, onDetail, onEdit, onRevoke, onDownloadQr }: Props) {
   return (
     <div className={styles.tableCards}>
-      {items.map((p) => (
+      {items.length === 0 ? null : (
+        items.map((p) => (
         <div key={p.id} className={styles.tableCard}>
           <div className={styles.tableCardRow}>
             <span className={styles.tableCardLabel}>ID</span>
             <span className={styles.tableCardValue}>{p.id}</span>
           </div>
           <div className={styles.tableCardRow}>
-            <span className={styles.tableCardLabel}>Code</span>
-            <span className={styles.tableCardValue}>{p.code}</span>
+            <span className={styles.tableCardLabel}>Batch ID</span>
+            <span className={styles.tableCardValue} title={p.code}>
+              {truncate(p.code, 18)}
+            </span>
           </div>
           <div className={styles.tableCardRow}>
             <span className={styles.tableCardLabel}>Name</span>
-            <span className={styles.tableCardValue}>{p.nameEn}</span>
+            <span className={styles.tableCardValue} title={p.nameEn}>
+              {truncate(p.nameEn)}
+            </span>
+          </div>
+          <div className={styles.tableCardRow}>
+            <span className={styles.tableCardLabel}>SKU</span>
+            <span className={styles.tableCardValue} title={p.sku ?? ''}>
+              {truncate(p.sku)}
+            </span>
           </div>
           <div className={styles.tableCardRow}>
             <span className={styles.tableCardLabel}>Image</span>
@@ -33,6 +46,16 @@ export function ProductsCards({ styles, items, onEdit, onRevoke, onDownloadQr }:
           </div>
           <div className={styles.tableCardActions}>
             <div className={styles.actions}>
+              {onDetail && (
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => onDetail(p)}
+                  title="View details"
+                >
+                  Detail
+                </button>
+              )}
               <button
                 type="button"
                 className={styles.btnSecondary}
@@ -57,7 +80,8 @@ export function ProductsCards({ styles, items, onEdit, onRevoke, onDownloadQr }:
             </div>
           </div>
         </div>
-      ))}
+      ))
+      )}
     </div>
   );
 }

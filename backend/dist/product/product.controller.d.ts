@@ -9,12 +9,16 @@ export declare class ProductController {
         total: number;
         items: {
             id: number;
-            code: string;
+            batchId: string;
             name: string;
             description: string | null;
             image: string | null;
             createdAt: Date;
             policyId: string | null;
+            sku: string | null;
+            grossWeightKg: number | null;
+            netWeightKg: number | null;
+            originSiteCode: string | null;
         }[];
     }>;
     mint(body: MintProductDto, token?: string): Promise<{
@@ -47,8 +51,8 @@ export declare class ProductController {
     }>;
     getRoadmap(code: string | undefined, token?: string): Promise<{
         items: {
-            hopIndex: number;
-            receiverAddress: string | null;
+            stepIndex: number;
+            toAddress: string | null;
         }[];
     }>;
     getBatchByCode(code: string): Promise<{

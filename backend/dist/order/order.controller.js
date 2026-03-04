@@ -87,6 +87,9 @@ let OrderController = class OrderController {
             recipientAddress: body.recipientAddress,
             senderAddress: body.senderAddress,
             ownerAddresses: body.ownerAddresses,
+            scriptAddress: body.scriptAddress,
+            datumHash: body.datumHash,
+            datumJson: body.datumJson,
         });
     }
     async getDeliveries(token) {
@@ -95,7 +98,9 @@ let OrderController = class OrderController {
         }
         const profileId = await this.auth.getProfileIdFromToken(token.trim());
         const deliveries = await this.order.listOrdersForProfile(profileId);
-        return { deliveries };
+        return {
+            deliveries: deliveries.map((d) => (Object.assign(Object.assign({}, d), { outAt: d.outAt ? d.outAt.toISOString() : null }))),
+        };
     }
     async savePartialTx(id, token, body) {
         var _a;
