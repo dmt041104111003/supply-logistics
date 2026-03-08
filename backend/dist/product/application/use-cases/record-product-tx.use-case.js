@@ -24,7 +24,7 @@ let RecordProductTxUseCase = class RecordProductTxUseCase {
         this.prisma = prisma;
     }
     async execute(params) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w;
         const { action, txHash, assetName, profileId } = params;
         if (action === "MINT") {
             const name = (_a = params.name) !== null && _a !== void 0 ? _a : "";
@@ -62,14 +62,6 @@ let RecordProductTxUseCase = class RecordProductTxUseCase {
                 referenceUtxo: `${txHash}#0`,
             };
             await this.repository.upsertBatchOnMint(mintParams);
-            const receivers = (_l = params.receivers) !== null && _l !== void 0 ? _l : [];
-            if (receivers.length > 0) {
-                const profile = minterProfile;
-                const senderAddress = (profile === null || profile === void 0 ? void 0 : profile.walletAddress) && typeof profile.walletAddress === "string"
-                    ? profile.walletAddress.trim()
-                    : "";
-                await this.repository.createRoadmaps(assetName, "MINT", senderAddress, receivers, txHash);
-            }
             await this.warehouse.addToWarehouse(profileId, assetName);
             return;
         }
@@ -78,8 +70,8 @@ let RecordProductTxUseCase = class RecordProductTxUseCase {
             throw new common_1.BadRequestException(`Batch not found: ${assetName}`);
         }
         if (action === "UPDATE") {
-            let nextExpiryDate = (_m = batch.expiryDate) !== null && _m !== void 0 ? _m : null;
-            const baseProps = (_o = params.properties) !== null && _o !== void 0 ? _o : {};
+            let nextExpiryDate = (_l = batch.expiryDate) !== null && _l !== void 0 ? _l : null;
+            const baseProps = (_m = params.properties) !== null && _m !== void 0 ? _m : {};
             const rawNextExpiry = baseProps === null || baseProps === void 0 ? void 0 : baseProps.ngayHetHan;
             if (rawNextExpiry) {
                 const d = rawNextExpiry instanceof Date
@@ -98,32 +90,24 @@ let RecordProductTxUseCase = class RecordProductTxUseCase {
             });
             await this.repository.updateBatch({
                 batchId: assetName,
-                name: (_p = params.name) !== null && _p !== void 0 ? _p : batch.name,
+                name: (_o = params.name) !== null && _o !== void 0 ? _o : batch.name,
                 description: nextDescription,
-                image: (_q = params.image) !== null && _q !== void 0 ? _q : batch.image,
+                image: (_p = params.image) !== null && _p !== void 0 ? _p : batch.image,
                 certificate: params.certificate !== undefined ? params.certificate : batch.certificate,
-                standard: (_r = params.standard) !== null && _r !== void 0 ? _r : batch.standard,
+                standard: (_q = params.standard) !== null && _q !== void 0 ? _q : batch.standard,
                 expiryDate: nextExpiryDate !== null && nextExpiryDate !== void 0 ? nextExpiryDate : null,
                 lastUpdateTxHash: txHash,
                 lastUpdateAt: new Date().toISOString(),
-                sku: (_t = (_s = baseProps.sku) !== null && _s !== void 0 ? _s : batch.sku) !== null && _t !== void 0 ? _t : null,
+                sku: (_s = (_r = baseProps.sku) !== null && _r !== void 0 ? _r : batch.sku) !== null && _s !== void 0 ? _s : null,
                 grossWeightKg: baseProps.grossWeightKg != null
                     ? Number(baseProps.grossWeightKg)
-                    : (_u = batch.grossWeightKg) !== null && _u !== void 0 ? _u : null,
+                    : (_t = batch.grossWeightKg) !== null && _t !== void 0 ? _t : null,
                 netWeightKg: baseProps.netWeightKg != null
                     ? Number(baseProps.netWeightKg)
-                    : (_v = batch.netWeightKg) !== null && _v !== void 0 ? _v : null,
-                originSiteCode: (_x = (_w = updaterProfile === null || updaterProfile === void 0 ? void 0 : updaterProfile.location) !== null && _w !== void 0 ? _w : batch.originSiteCode) !== null && _x !== void 0 ? _x : null,
+                    : (_u = batch.netWeightKg) !== null && _u !== void 0 ? _u : null,
+                originSiteCode: (_w = (_v = updaterProfile === null || updaterProfile === void 0 ? void 0 : updaterProfile.location) !== null && _v !== void 0 ? _v : batch.originSiteCode) !== null && _w !== void 0 ? _w : null,
                 referenceUtxo: `${txHash}#0`,
             });
-            const receivers = (_y = params.receivers) !== null && _y !== void 0 ? _y : [];
-            if (receivers.length > 0) {
-                const profile = updaterProfile;
-                const senderAddress = (profile === null || profile === void 0 ? void 0 : profile.walletAddress) && typeof profile.walletAddress === "string"
-                    ? profile.walletAddress.trim()
-                    : "";
-                await this.repository.createRoadmaps(assetName, "UPDATE", senderAddress, receivers, txHash);
-            }
             return;
         }
     }

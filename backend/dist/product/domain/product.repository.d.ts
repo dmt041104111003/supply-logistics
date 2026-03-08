@@ -12,6 +12,11 @@ export interface ProductBatchListItem {
     netWeightKg: number | null;
     originSiteCode: string | null;
 }
+export interface ProductRoadmapHop {
+    stepIndex: number;
+    fromAddress: string | null;
+    toAddress: string | null;
+}
 export interface ProductBatchSnapshot {
     batchId: string;
     name: string;
@@ -34,11 +39,6 @@ export interface ProductBatchSnapshot {
     burnTxHash: string | null;
     burnedAt: Date | null;
     burned: boolean;
-}
-export interface ProductRoadmapHop {
-    stepIndex: number;
-    fromAddress: string | null;
-    toAddress: string | null;
 }
 export interface MintBatchParams {
     batchId: string;
@@ -85,7 +85,5 @@ export interface ProductRepositoryPort {
     getMinterWalletAddressByBatchCode(batchId: string): Promise<string | null>;
     updateBatch(params: UpdateBatchParams): Promise<void>;
     deleteBatch(batchId: string): Promise<void>;
-    createRoadmaps(batchId: string, action: "MINT" | "UPDATE" | "REVOKE", fromAddress: string, receivers: string[], txHash: string): Promise<void>;
-    listRoadmap(batchId: string): Promise<ProductRoadmapHop[]>;
 }
 export declare const PRODUCT_REPOSITORY = "PRODUCT_REPOSITORY";

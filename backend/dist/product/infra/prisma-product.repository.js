@@ -131,46 +131,6 @@ let PrismaProductRepository = class PrismaProductRepository {
             where: { batchId: code },
         });
     }
-    async createRoadmaps(batchId, action, fromAddress, receivers, txHash) {
-        if (receivers.length === 0)
-            return;
-        await this.prisma.roadmap.createMany({
-            data: receivers.map((toAddress, stepIndex) => ({
-                batchId,
-                fromAddress,
-                toAddress,
-                stepIndex,
-                action,
-                txHash,
-            })),
-        });
-    }
-    async listRoadmap(batchId) {
-        var _a;
-        const prisma = this.prisma;
-        const bid = (batchId || "").trim();
-        if (!bid)
-            return [];
-        const batch = await prisma.productBatch.findUnique({
-            where: { batchId: bid },
-            select: { lastUpdateTxHash: true, mintTxHash: true },
-        });
-        const currentTxHash = (_a = batch === null || batch === void 0 ? void 0 : batch.lastUpdateTxHash) !== null && _a !== void 0 ? _a : batch === null || batch === void 0 ? void 0 : batch.mintTxHash;
-        if (!currentTxHash || typeof currentTxHash !== "string")
-            return [];
-        const rows = await prisma.roadmap.findMany({
-            where: { batchId: bid, txHash: currentTxHash },
-            orderBy: { stepIndex: "asc" },
-            select: { stepIndex: true, fromAddress: true, toAddress: true },
-        });
-        if (!Array.isArray(rows))
-            return [];
-        return rows.map((r) => ({
-            stepIndex: r.stepIndex,
-            fromAddress: r.fromAddress,
-            toAddress: r.toAddress,
-        }));
-    }
 };
 exports.PrismaProductRepository = PrismaProductRepository;
 exports.PrismaProductRepository = PrismaProductRepository = __decorate([

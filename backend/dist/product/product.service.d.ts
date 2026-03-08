@@ -1,11 +1,11 @@
 import type { UTxO } from "@meshsdk/core";
 import { CardanoService } from "../core/cardano/cardano.service";
+import { Ref100MetadataService } from "../core/cardano/ref100-metadata.service";
 import { ConfigService } from "../core/config/config.service";
 import { WarehouseService } from "../warehouse/warehouse.service";
 import { ProductRepositoryPort, type ProductBatchListItem } from "./domain/product.repository";
 import { ListBatchesUseCase } from "./application/use-cases/list-batches.use-case";
 import { RecordProductTxUseCase } from "./application/use-cases/record-product-tx.use-case";
-import { ListRoadmapUseCase } from "./application/use-cases/list-roadmap.use-case";
 export type { BuildMetadataInput } from "./product.helpers";
 export declare class ProductService {
     private readonly cardano;
@@ -14,8 +14,8 @@ export declare class ProductService {
     private readonly productRepository;
     private readonly listBatchesUseCase;
     private readonly recordProductTxUseCase;
-    private readonly listRoadmapUseCase;
-    constructor(cardano: CardanoService, config: ConfigService, warehouse: WarehouseService, productRepository: ProductRepositoryPort, listBatchesUseCase: ListBatchesUseCase, recordProductTxUseCase: RecordProductTxUseCase, listRoadmapUseCase: ListRoadmapUseCase);
+    private readonly ref100Metadata;
+    constructor(cardano: CardanoService, config: ConfigService, warehouse: WarehouseService, productRepository: ProductRepositoryPort, listBatchesUseCase: ListBatchesUseCase, recordProductTxUseCase: RecordProductTxUseCase, ref100Metadata: Ref100MetadataService);
     private createContract;
     listBatches(profileId: number): Promise<(ProductBatchListItem & {
         canUpdate: boolean;

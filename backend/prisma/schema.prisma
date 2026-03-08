@@ -57,7 +57,6 @@ model ProductBatch {
   minterProfileId  Int
   minterProfile    Profile  @relation("ProfileBatches", fields: [minterProfileId], references: [id])
 
-  roadmaps         Roadmap[]
   inventories      WarehouseInventory[]
 }
 
@@ -81,27 +80,6 @@ model WarehouseInventory {
   profile Profile      @relation("WarehouseOwner", fields: [profileId], references: [id], onDelete: Cascade)
 
   @@unique([batchId, profileId])
-}
-
-model Roadmap {
-  id              Int      @id @default(autoincrement())
-  batchId         String
-  fromAddress     String   @default("")
-  toAddress       String
-  stepIndex       Int      @default(0)
-  action          String
-  txHash          String?
-  createdAt       DateTime @default(now())
-  legType         String?
-  transportMode   String?
-  carrierName     String?
-  routeCode       String?
-  plannedDepartureAt DateTime?
-  plannedArrivalAt   DateTime?
-  actualDepartureAt  DateTime?
-  actualArrivalAt    DateTime?
-
-  batch           ProductBatch @relation(fields: [batchId], references: [batchId], onDelete: Cascade)
 }
 
 enum DeliveryStatus {

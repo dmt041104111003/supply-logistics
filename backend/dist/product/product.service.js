@@ -16,6 +16,7 @@ exports.ProductService = void 0;
 const core_1 = require("@meshsdk/core");
 const common_1 = require("@nestjs/common");
 const cardano_service_1 = require("../core/cardano/cardano.service");
+const ref100_metadata_service_1 = require("../core/cardano/ref100-metadata.service");
 const config_service_1 = require("../core/config/config.service");
 const warehouse_service_1 = require("../warehouse/warehouse.service");
 const cip68_contract_1 = require("../core/cardano/cip68/cip68.contract");
@@ -24,17 +25,16 @@ const product_helpers_1 = require("./product.helpers");
 const product_repository_1 = require("./domain/product.repository");
 const list_batches_use_case_1 = require("./application/use-cases/list-batches.use-case");
 const record_product_tx_use_case_1 = require("./application/use-cases/record-product-tx.use-case");
-const list_roadmap_use_case_1 = require("./application/use-cases/list-roadmap.use-case");
 const utils_1 = require("../trace/utils");
 let ProductService = class ProductService {
-    constructor(cardano, config, warehouse, productRepository, listBatchesUseCase, recordProductTxUseCase, listRoadmapUseCase) {
+    constructor(cardano, config, warehouse, productRepository, listBatchesUseCase, recordProductTxUseCase, ref100Metadata) {
         this.cardano = cardano;
         this.config = config;
         this.warehouse = warehouse;
         this.productRepository = productRepository;
         this.listBatchesUseCase = listBatchesUseCase;
         this.recordProductTxUseCase = recordProductTxUseCase;
-        this.listRoadmapUseCase = listRoadmapUseCase;
+        this.ref100Metadata = ref100Metadata;
     }
     createContract(changeAddress, opts) {
         const wallet = (0, product_helpers_1.createReadOnlyWallet)(changeAddress, this.cardano.blockfrostProvider, opts === null || opts === void 0 ? void 0 : opts.walletUtxos, opts === null || opts === void 0 ? void 0 : opts.utxoAddresses);
@@ -67,7 +67,20 @@ let ProductService = class ProductService {
         }
     }
     async listRoadmap(batchId) {
-        return this.listRoadmapUseCase.execute(batchId);
+        var _a;
+        const batch = await this.productRepository.findBatchByCode(batchId.trim());
+        if (!((_a = batch === null || batch === void 0 ? void 0 : batch.policyId) === null || _a === void 0 ? void 0 : _a.trim()))
+            return [];
+        const meta = await this.ref100Metadata.getMetadata(batch.policyId.trim(), batchId.trim());
+        if (!meta)
+            return [];
+        return meta.receiverAddresses.map((toAddress, stepIndex) => {
+            var _a;
+            return ({
+                stepIndex,
+                toAddress: (_a = toAddress === null || toAddress === void 0 ? void 0 : toAddress.trim()) !== null && _a !== void 0 ? _a : null,
+            });
+        });
     }
     async mint(params) {
         var _a, _b, _c, _d;
@@ -234,18 +247,25 @@ let ProductService = class ProductService {
         };
     }
     async getBatchQrPayload(code) {
-        var _a;
+        var _a, _b, _c;
         const batch = await this.productRepository.findBatchByCode(code);
         if (!batch) {
             throw new common_1.BadRequestException(`Batch not found: ${code}`);
         }
+        const policyId = (_a = batch.policyId) === null || _a === void 0 ? void 0 : _a.trim();
+        if (!policyId) {
+            return {
+                policyId: "",
+                assetName: batch.batchId,
+                minter: (_b = await this.productRepository.getMinterWalletAddressByBatchCode(code)) !== null && _b !== void 0 ? _b : null,
+                owners: [],
+            };
+        }
+        const meta = await this.ref100Metadata.getMetadata(policyId, code.trim());
+        const owners = (_c = meta === null || meta === void 0 ? void 0 : meta.receiverAddresses) !== null && _c !== void 0 ? _c : [];
         const minter = await this.productRepository.getMinterWalletAddressByBatchCode(code);
-        const roadmap = await this.listRoadmapUseCase.execute(code);
-        const owners = roadmap
-            .map((r) => { var _a; return (_a = r.toAddress) === null || _a === void 0 ? void 0 : _a.trim(); })
-            .filter((addr) => !!addr);
         return {
-            policyId: (_a = batch.policyId) !== null && _a !== void 0 ? _a : "",
+            policyId,
             assetName: batch.batchId,
             minter: minter !== null && minter !== void 0 ? minter : null,
             owners,
@@ -326,6 +346,6 @@ exports.ProductService = ProductService = __decorate([
         config_service_1.ConfigService,
         warehouse_service_1.WarehouseService, Object, list_batches_use_case_1.ListBatchesUseCase,
         record_product_tx_use_case_1.RecordProductTxUseCase,
-        list_roadmap_use_case_1.ListRoadmapUseCase])
+        ref100_metadata_service_1.Ref100MetadataService])
 ], ProductService);
 //# sourceMappingURL=product.service.js.map

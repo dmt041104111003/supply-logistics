@@ -1,5 +1,5 @@
 import { PrismaService } from "../../prisma/prisma.service";
-import { MintBatchParams, ProductBatchListItem, ProductBatchSnapshot, ProductRepositoryPort, UpdateBatchParams, ProductRoadmapHop } from "../domain/product.repository";
+import { MintBatchParams, ProductBatchListItem, ProductBatchSnapshot, ProductRepositoryPort, UpdateBatchParams } from "../domain/product.repository";
 export declare class PrismaProductRepository implements ProductRepositoryPort {
     private readonly prisma;
     constructor(prisma: PrismaService);
@@ -9,6 +9,4 @@ export declare class PrismaProductRepository implements ProductRepositoryPort {
     getMinterWalletAddressByBatchCode(code: string): Promise<string | null>;
     updateBatch(params: UpdateBatchParams): Promise<void>;
     deleteBatch(batchId: string): Promise<void>;
-    createRoadmaps(batchId: string, action: "MINT" | "UPDATE" | "REVOKE", fromAddress: string, receivers: string[], txHash: string): Promise<void>;
-    listRoadmap(batchId: string): Promise<ProductRoadmapHop[]>;
 }

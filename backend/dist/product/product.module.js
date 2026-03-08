@@ -18,7 +18,6 @@ const product_repository_1 = require("./domain/product.repository");
 const prisma_product_repository_1 = require("./infra/prisma-product.repository");
 const list_batches_use_case_1 = require("./application/use-cases/list-batches.use-case");
 const record_product_tx_use_case_1 = require("./application/use-cases/record-product-tx.use-case");
-const list_roadmap_use_case_1 = require("./application/use-cases/list-roadmap.use-case");
 let ProductModule = class ProductModule {
 };
 exports.ProductModule = ProductModule;
@@ -34,7 +33,6 @@ exports.ProductModule = ProductModule = __decorate([
             },
             list_batches_use_case_1.ListBatchesUseCase,
             record_product_tx_use_case_1.RecordProductTxUseCase,
-            list_roadmap_use_case_1.ListRoadmapUseCase,
         ],
         exports: [product_service_1.ProductService],
     })

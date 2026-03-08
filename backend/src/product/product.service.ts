@@ -2,6 +2,7 @@ import type { UTxO } from "@meshsdk/core";
 import { deserializeAddress, resolvePaymentKeyHash } from "@meshsdk/core";
 import { Inject, Injectable, BadRequestException } from "@nestjs/common";
 import { CardanoService } from "../core/cardano/cardano.service";
+import { Ref100MetadataService } from "../core/cardano/ref100-metadata.service";
 import { ConfigService } from "../core/config/config.service";
 import { WarehouseService } from "../warehouse/warehouse.service";
 import { Cip68Contract } from "../core/cardano/cip68/cip68.contract";
@@ -14,7 +15,6 @@ import {
 } from "./domain/product.repository";
 import { ListBatchesUseCase } from "./application/use-cases/list-batches.use-case";
 import { RecordProductTxUseCase } from "./application/use-cases/record-product-tx.use-case";
-import { ListRoadmapUseCase } from "./application/use-cases/list-roadmap.use-case";
 import { buildNft222Unit } from "../trace/utils";
 
 export type { BuildMetadataInput } from "./product.helpers";
@@ -29,7 +29,7 @@ export class ProductService {
     private readonly productRepository: ProductRepositoryPort,
     private readonly listBatchesUseCase: ListBatchesUseCase,
     private readonly recordProductTxUseCase: RecordProductTxUseCase,
-    private readonly listRoadmapUseCase: ListRoadmapUseCase
+    private readonly ref100Metadata: Ref100MetadataService
   ) {}
 
   private createContract(
@@ -77,7 +77,14 @@ export class ProductService {
   }
 
   async listRoadmap(batchId: string): Promise<{ stepIndex: number; toAddress: string | null }[]> {
-    return this.listRoadmapUseCase.execute(batchId);
+    const batch = await this.productRepository.findBatchByCode(batchId.trim());
+    if (!batch?.policyId?.trim()) return [];
+    const meta = await this.ref100Metadata.getMetadata(batch.policyId.trim(), batchId.trim());
+    if (!meta) return [];
+    return meta.receiverAddresses.map((toAddress, stepIndex) => ({
+      stepIndex,
+      toAddress: toAddress?.trim() ?? null,
+    }));
   }
 
   async mint(params: {
@@ -311,13 +318,20 @@ export class ProductService {
     if (!batch) {
       throw new BadRequestException(`Batch not found: ${code}`);
     }
+    const policyId = batch.policyId?.trim();
+    if (!policyId) {
+      return {
+        policyId: "",
+        assetName: batch.batchId,
+        minter: await this.productRepository.getMinterWalletAddressByBatchCode(code) ?? null,
+        owners: [],
+      };
+    }
+    const meta = await this.ref100Metadata.getMetadata(policyId, code.trim());
+    const owners = meta?.receiverAddresses ?? [];
     const minter = await this.productRepository.getMinterWalletAddressByBatchCode(code);
-    const roadmap = await this.listRoadmapUseCase.execute(code);
-    const owners = roadmap
-      .map((r) => r.toAddress?.trim())
-      .filter((addr): addr is string => !!addr);
     return {
-      policyId: batch.policyId ?? "",
+      policyId,
       assetName: batch.batchId,
       minter: minter ?? null,
       owners,

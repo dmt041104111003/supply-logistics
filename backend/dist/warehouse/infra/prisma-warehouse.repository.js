@@ -58,50 +58,6 @@ let PrismaWarehouseRepository = class PrismaWarehouseRepository {
             update: { status: "IN_WAREHOUSE", shippedAt: null, lastMovedAt: new Date() },
         });
     }
-    async findRecipientByRoadmap(profileId, batchId) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        const prisma = this.prisma;
-        const bid = (batchId || "").trim();
-        if (!bid)
-            return { recipientAddress: null };
-        const profile = await prisma.profile.findUnique({
-            where: { id: profileId },
-            select: { walletAddress: true },
-        });
-        if (!(profile === null || profile === void 0 ? void 0 : profile.walletAddress))
-            return { recipientAddress: null };
-        const senderWallet = profile.walletAddress.trim().toLowerCase();
-        const batch = await prisma.productBatch.findUnique({
-            where: { batchId: bid },
-            select: {
-                minterProfileId: true,
-                minterProfile: { select: { walletAddress: true } },
-            },
-        });
-        if (!batch)
-            return { recipientAddress: null };
-        const minterWallet = (_c = (_b = (_a = batch.minterProfile) === null || _a === void 0 ? void 0 : _a.walletAddress) === null || _b === void 0 ? void 0 : _b.trim().toLowerCase()) !== null && _c !== void 0 ? _c : "";
-        if (minterWallet && senderWallet === minterWallet) {
-            const firstHop = await prisma.roadmap.findFirst({
-                where: { batchId: bid },
-                orderBy: { stepIndex: "asc" },
-                select: { toAddress: true },
-            });
-            return {
-                recipientAddress: (_e = (_d = firstHop === null || firstHop === void 0 ? void 0 : firstHop.toAddress) === null || _d === void 0 ? void 0 : _d.trim()) !== null && _e !== void 0 ? _e : null,
-            };
-        }
-        const myHop = await prisma.roadmap.findMany({
-            where: { batchId: bid },
-            orderBy: { stepIndex: "asc" },
-            select: { stepIndex: true, toAddress: true },
-        });
-        const idx = myHop.findIndex((r) => (r.toAddress || "").trim().toLowerCase() === senderWallet);
-        if (idx < 0 || idx >= myHop.length - 1)
-            return { recipientAddress: null };
-        const next = (_h = (_g = (_f = myHop[idx + 1]) === null || _f === void 0 ? void 0 : _f.toAddress) === null || _g === void 0 ? void 0 : _g.trim()) !== null && _h !== void 0 ? _h : null;
-        return { recipientAddress: next };
-    }
 };
 exports.PrismaWarehouseRepository = PrismaWarehouseRepository;
 exports.PrismaWarehouseRepository = PrismaWarehouseRepository = __decorate([

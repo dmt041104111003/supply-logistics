@@ -10,6 +10,7 @@ exports.CardanoModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_module_1 = require("../config/config.module");
 const cardano_service_1 = require("./cardano.service");
+const ref100_metadata_service_1 = require("./ref100-metadata.service");
 let CardanoModule = class CardanoModule {
 };
 exports.CardanoModule = CardanoModule;
@@ -17,8 +18,8 @@ exports.CardanoModule = CardanoModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
         imports: [config_module_1.ConfigModule],
-        providers: [cardano_service_1.CardanoService],
-        exports: [cardano_service_1.CardanoService],
+        providers: [cardano_service_1.CardanoService, ref100_metadata_service_1.Ref100MetadataService],
+        exports: [cardano_service_1.CardanoService, ref100_metadata_service_1.Ref100MetadataService],
     })
 ], CardanoModule);
 //# sourceMappingURL=cardano.module.js.map

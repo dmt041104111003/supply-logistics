@@ -6,7 +6,6 @@ import {
   ProductBatchSnapshot,
   ProductRepositoryPort,
   UpdateBatchParams,
-  ProductRoadmapHop,
 } from "../domain/product.repository";
 
 @Injectable()
@@ -194,51 +193,6 @@ export class PrismaProductRepository implements ProductRepositoryPort {
     await (this.prisma as any).productBatch.delete({
       where: { batchId: code },
     });
-  }
-
-  async createRoadmaps(
-    batchId: string,
-    action: "MINT" | "UPDATE" | "REVOKE",
-    fromAddress: string,
-    receivers: string[],
-    txHash: string
-  ): Promise<void> {
-    if (receivers.length === 0) return;
-    await (this.prisma as any).roadmap.createMany({
-      data: receivers.map((toAddress, stepIndex) => ({
-        batchId,
-        fromAddress,
-        toAddress,
-        stepIndex,
-        action,
-        txHash,
-      })),
-    });
-  }
-
-  async listRoadmap(batchId: string): Promise<ProductRoadmapHop[]> {
-    const prisma = this.prisma as any;
-    const bid = (batchId || "").trim();
-    if (!bid) return [];
-    const batch = await prisma.productBatch.findUnique({
-      where: { batchId: bid },
-      select: { lastUpdateTxHash: true, mintTxHash: true },
-    });
-    const currentTxHash = batch?.lastUpdateTxHash ?? batch?.mintTxHash;
-    if (!currentTxHash || typeof currentTxHash !== "string") return [];
-    const rows = await prisma.roadmap.findMany({
-      where: { batchId: bid, txHash: currentTxHash },
-      orderBy: { stepIndex: "asc" },
-      select: { stepIndex: true, fromAddress: true, toAddress: true },
-    });
-    if (!Array.isArray(rows)) return [];
-    return rows.map(
-      (r: { stepIndex: number; fromAddress: string | null; toAddress: string | null }): ProductRoadmapHop => ({
-        stepIndex: r.stepIndex,
-        fromAddress: r.fromAddress,
-        toAddress: r.toAddress,
-      })
-    );
   }
 }
 

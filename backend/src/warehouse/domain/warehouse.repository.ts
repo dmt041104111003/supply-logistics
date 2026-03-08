@@ -20,11 +20,6 @@ export interface WarehouseRepositoryPort {
   markAsShippedForProfile(profileId: number, batchId: string): Promise<void>;
 
   addToWarehouseForProfile(profileId: number, batchId: string): Promise<void>;
-
-  findRecipientByRoadmap(
-    profileId: number,
-    batchId: string
-  ): Promise<RecipientByRoadmapResult>;
 }
 
 export const WAREHOUSE_REPOSITORY = "WAREHOUSE_REPOSITORY";

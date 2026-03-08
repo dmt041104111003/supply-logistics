@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
-  RecipientByRoadmapResult,
   WarehouseInventoryItem,
   WarehouseRepositoryPort,
 } from "../domain/warehouse.repository";
@@ -66,59 +65,6 @@ export class PrismaWarehouseRepository implements WarehouseRepositoryPort {
       create: { batchId, profileId, status: "IN_WAREHOUSE" },
       update: { status: "IN_WAREHOUSE", shippedAt: null, lastMovedAt: new Date() },
     });
-  }
-
-  async findRecipientByRoadmap(
-    profileId: number,
-    batchId: string
-  ): Promise<RecipientByRoadmapResult> {
-    const prisma = this.prisma as any;
-    const bid = (batchId || "").trim();
-    if (!bid) return { recipientAddress: null };
-
-    const profile = await prisma.profile.findUnique({
-      where: { id: profileId },
-      select: { walletAddress: true },
-    });
-    if (!profile?.walletAddress) return { recipientAddress: null };
-    const senderWallet = profile.walletAddress.trim().toLowerCase();
-
-    const batch = await prisma.productBatch.findUnique({
-      where: { batchId: bid },
-      select: {
-        minterProfileId: true,
-        minterProfile: { select: { walletAddress: true } },
-      },
-    });
-    if (!batch) return { recipientAddress: null };
-
-    const minterWallet =
-      batch.minterProfile?.walletAddress?.trim().toLowerCase() ?? "";
-
-    if (minterWallet && senderWallet === minterWallet) {
-      const firstHop = await prisma.roadmap.findFirst({
-        where: { batchId: bid },
-        orderBy: { stepIndex: "asc" },
-        select: { toAddress: true },
-      });
-      return {
-        recipientAddress: firstHop?.toAddress?.trim() ?? null,
-      };
-    }
-
-    const myHop = await prisma.roadmap.findMany({
-      where: { batchId: bid },
-      orderBy: { stepIndex: "asc" },
-      select: { stepIndex: true, toAddress: true },
-    });
-    const idx = myHop.findIndex(
-      (r: { stepIndex: number; toAddress: string | null }) =>
-        (r.toAddress || "").trim().toLowerCase() === senderWallet,
-    );
-    if (idx < 0 || idx >= myHop.length - 1)
-      return { recipientAddress: null };
-    const next = myHop[idx + 1]?.toAddress?.trim() ?? null;
-    return { recipientAddress: next };
   }
 }
 

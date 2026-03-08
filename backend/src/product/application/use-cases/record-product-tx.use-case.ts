@@ -77,22 +77,6 @@ export class RecordProductTxUseCase {
 
       await this.repository.upsertBatchOnMint(mintParams);
 
-      const receivers = params.receivers ?? [];
-      if (receivers.length > 0) {
-        const profile = minterProfile;
-        const senderAddress =
-          profile?.walletAddress && typeof profile.walletAddress === "string"
-            ? profile.walletAddress.trim()
-            : "";
-        await this.repository.createRoadmaps(
-          assetName,
-          "MINT",
-          senderAddress,
-          receivers,
-          txHash
-        );
-      }
-
       await this.warehouse.addToWarehouse(profileId, assetName);
       return;
     }
@@ -148,21 +132,6 @@ export class RecordProductTxUseCase {
         referenceUtxo: `${txHash}#0`,
       });
 
-      const receivers = params.receivers ?? [];
-      if (receivers.length > 0) {
-        const profile = updaterProfile;
-        const senderAddress =
-          profile?.walletAddress && typeof profile.walletAddress === "string"
-            ? profile.walletAddress.trim()
-            : "";
-        await this.repository.createRoadmaps(
-          assetName,
-          "UPDATE",
-          senderAddress,
-          receivers,
-          txHash
-        );
-      }
       return;
     }
   }
