@@ -60,10 +60,17 @@ export async function fetchTrace(
   }
   const b = body as Record<string, unknown>;
   const core = b.core as Record<string, unknown> | undefined;
-  const mapData = b.mapData as Array<{ status?: string; address?: string | null; pointType?: string; label?: string; lat?: number; lng?: number }> | undefined;
+  const rawMapData = b.mapData as Array<{ status?: string; address?: string | null; pointType?: string; label?: string; lat?: number; lng?: number }> | undefined;
+  const mapData: TraceData['mapData'] = Array.isArray(rawMapData)
+    ? rawMapData
+        .filter((p): p is { lat: number; lng: number; label: string; status: string; pointType?: string; address?: string | null } =>
+          typeof p.lat === 'number' && typeof p.lng === 'number' && typeof p.label === 'string' && typeof p.status === 'string'
+        )
+        .map((p) => ({ lat: p.lat, lng: p.lng, label: p.label, status: p.status, pointType: p.pointType, address: p.address ?? null }))
+    : undefined;
   const meta = (b.metadata as Record<string, unknown>) ?? {};
   const display = (b.display as Record<string, unknown>) ?? {};
-  const receiverAddressesFromMap = Array.isArray(mapData) ? mapData.map((p) => p.address).filter(Boolean).join(';') : '';
+  const receiverAddressesFromMap = Array.isArray(rawMapData) ? rawMapData.map((p) => p.address).filter(Boolean).join(';') : '';
   const receiverAddressesStr = (meta.receiver_addresses as string) ?? (receiverAddressesFromMap || '');
   const metadata: Record<string, unknown> = {
     ...meta,
