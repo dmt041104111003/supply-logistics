@@ -8,7 +8,6 @@ import { PrismaWarehouseRepository } from "./infra/prisma-warehouse.repository";
 import { ListMyInventoryUseCase } from "./application/use-cases/list-my-inventory.use-case";
 import { RemoveItemUseCase } from "./application/use-cases/remove-item.use-case";
 import { MarkShippedUseCase } from "./application/use-cases/mark-shipped.use-case";
-import { MarkBurnedUseCase } from "./application/use-cases/mark-burned.use-case";
 import { AddToWarehouseUseCase } from "./application/use-cases/add-to-warehouse.use-case";
 import { GetRecipientByRoadmapUseCase } from "./application/use-cases/get-recipient-by-roadmap.use-case";
 
@@ -24,7 +23,6 @@ import { GetRecipientByRoadmapUseCase } from "./application/use-cases/get-recipi
     ListMyInventoryUseCase,
     RemoveItemUseCase,
     MarkShippedUseCase,
-    MarkBurnedUseCase,
     AddToWarehouseUseCase,
     GetRecipientByRoadmapUseCase,
   ],

@@ -22,18 +22,14 @@ function computeMintScriptCborForMinterAddress(minterChangeAddress, opts) {
         return v.compiledCode;
     };
     const storeCompileCode = readValidator(t.store);
-    const storeScriptCbor = (0, core_1.applyParamsToScript)(storeCompileCode, [pubKeyIssuer]);
+    const ownerAddress = (0, core_1.mPubKeyAddress)(pubKeyIssuer, stakeCredentialHash);
+    const storeScriptCbor = (0, core_1.applyParamsToScript)(storeCompileCode, [[ownerAddress]], "Mesh");
     const storeScript = { code: storeScriptCbor, version: "V3" };
     const storeScriptAddress = (0, core_1.serializePlutusScript)(storeScript, undefined, networkId, false).address;
     const storeScriptHash = (0, core_1.deserializeAddress)(storeScriptAddress).scriptHash;
-    const storeAddress = (0, core_1.serializeAddressObj)((0, core_1.scriptAddress)(storeScriptHash, stakeCredentialHash, false), networkId);
-    const storeScriptHashWithStake = (0, core_1.deserializeAddress)(storeAddress).scriptHash;
+    const storeAddressForMint = (0, core_1.mPubKeyAddress)(storeScriptHash, stakeCredentialHash);
     const mintCompileCode = readValidator(t.mint);
-    const mintScriptCbor = (0, core_1.applyParamsToScript)(mintCompileCode, [
-        storeScriptHashWithStake,
-        stakeCredentialHash,
-        pubKeyIssuer,
-    ]);
+    const mintScriptCbor = (0, core_1.applyParamsToScript)(mintCompileCode, [[ownerAddress], storeAddressForMint], "Mesh");
     const policyId = (0, core_1.resolveScriptHash)(mintScriptCbor, "V3");
     return { mintScriptCbor, policyId };
 }

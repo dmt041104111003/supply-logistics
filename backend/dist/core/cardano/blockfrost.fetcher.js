@@ -1,10 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BlockfrostFetcher = void 0;
+exports.BlockfrostFetcher = exports.BlockfrostNotFoundError = void 0;
 const axios_1 = require("axios");
 const core_1 = require("@meshsdk/core");
 const utils_1 = require("../../shared/common/utils");
 const config_service_1 = require("../config/config.service");
+class BlockfrostNotFoundError extends Error {
+    constructor(message = "The requested component has not been found.") {
+        super(message);
+        this.statusCode = 404;
+        this.name = "BlockfrostNotFoundError";
+    }
+}
+exports.BlockfrostNotFoundError = BlockfrostNotFoundError;
 class BlockfrostFetcher {
     constructor(projectIdOrBaseUrl, version, deps) {
         const { buildRef100Unit: br, parseHttpError: pe } = deps !== null && deps !== void 0 ? deps : {
@@ -29,6 +37,7 @@ class BlockfrostFetcher {
         }
     }
     async _get(path, params) {
+        var _a, _b, _c, _d;
         try {
             const config = params ? { params } : undefined;
             const { data, status } = await this._axiosInstance.get(path, config);
@@ -37,6 +46,9 @@ class BlockfrostFetcher {
             throw this._parseHttpError(data);
         }
         catch (error) {
+            if (axios_1.default.isAxiosError(error) && ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 404) {
+                throw new BlockfrostNotFoundError((_d = (_c = (_b = error.response) === null || _b === void 0 ? void 0 : _b.data) === null || _c === void 0 ? void 0 : _c.message) !== null && _d !== void 0 ? _d : "The requested component has not been found.");
+            }
             throw this._parseHttpError(error);
         }
     }
@@ -116,6 +128,25 @@ class BlockfrostFetcher {
         }
         return allTxHashes;
     }
+    async fetchAllAssetTransactionsWithBlockTime(asset) {
+        const all = [];
+        const pageSize = 100;
+        let currentPage = 1;
+        for (;;) {
+            const pageData = await this._get(`/assets/${asset}/transactions`, {
+                page: currentPage,
+                count: pageSize,
+                order: "asc",
+            });
+            if (!Array.isArray(pageData) || pageData.length === 0)
+                break;
+            all.push(...pageData);
+            if (pageData.length < pageSize)
+                break;
+            currentPage += 1;
+        }
+        return all;
+    }
     async fetchAssetsByPolicy(policyId) {
         const allAssets = [];
         const pageSize = 100;
@@ -154,6 +185,9 @@ class BlockfrostFetcher {
             return allUtxos;
         }
         catch (err) {
+            if (err instanceof BlockfrostNotFoundError || (err === null || err === void 0 ? void 0 : err.statusCode) === 404) {
+                return [];
+            }
             throw this._parseHttpError(err);
         }
     }

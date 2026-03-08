@@ -85,7 +85,6 @@ export function LocationMap({ coordinates, tooltipText, onChange }: Props) {
           ? coordStrings[0]
           : coordStrings.join(' → '));
 
-      // Draw markers and a polyline for the path
       const latlngs: [number, number][] = [];
       parsedList.forEach(([lat, lng], index) => {
         latlngs.push([lat, lng]);

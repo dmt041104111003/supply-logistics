@@ -90,24 +90,3 @@ export async function requestBurnNft(
   }
   return { unsignedTx: data.unsignedTx };
 }
-
-export async function confirmBurnNft(
-  token: string,
-  params: { txHash: string; assetName: string; profileId: number },
-): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/product/burn/confirm`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      txHash: params.txHash,
-      assetName: params.assetName,
-      profileId: params.profileId,
-    }),
-  });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(
-      data?.message ?? data?.error ?? 'Burn confirm failed.',
-    );
-  }
-}

@@ -7,13 +7,14 @@ export declare class RecordProductTxUseCase {
     private readonly prisma;
     constructor(repository: ProductRepositoryPort, warehouse: WarehouseService, prisma: PrismaService);
     execute(params: {
-        action: "MINT" | "UPDATE" | "REVOKE" | "BURN";
+        action: "MINT" | "UPDATE";
         txHash: string;
         assetName: string;
         profileId: number;
         name?: string;
         description?: string;
         image?: string;
+        certificate?: string;
         standard?: string;
         properties?: object;
         metadata?: object;

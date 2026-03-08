@@ -57,22 +57,6 @@ export class PrismaWarehouseRepository implements WarehouseRepositoryPort {
     });
   }
 
-  async markAsBurnedForProfile(
-    profileId: number,
-    batchId: string,
-    burnTxHash?: string
-  ): Promise<void> {
-    await (this.prisma as any).warehouseInventory.updateMany({
-      where: { batchId, profileId },
-      data: {
-        status: "CONSUMED",
-        consumedAt: new Date(),
-        burnTxHash: burnTxHash ?? null,
-        lastMovedAt: new Date(),
-      },
-    });
-  }
-
   async addToWarehouseForProfile(
     profileId: number,
     batchId: string

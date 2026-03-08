@@ -17,13 +17,14 @@ export class RecordProductTxUseCase {
   ) {}
 
   async execute(params: {
-    action: "MINT" | "UPDATE" | "REVOKE" | "BURN";
+    action: "MINT" | "UPDATE";
     txHash: string;
     assetName: string;
     profileId: number;
     name?: string;
     description?: string;
     image?: string;
+    certificate?: string;
     standard?: string;
     properties?: object;
     metadata?: object;
@@ -59,6 +60,7 @@ export class RecordProductTxUseCase {
         name,
         description: description || null,
         image: image || null,
+        certificate: params.certificate ?? null,
         standard: params.standard ?? "Traceability-v1",
         mintTxHash: txHash,
         policyId: params.policyId,
@@ -128,6 +130,7 @@ export class RecordProductTxUseCase {
         name: params.name ?? batch.name,
         description: nextDescription,
         image: params.image ?? batch.image,
+        certificate: params.certificate !== undefined ? params.certificate : batch.certificate,
         standard: params.standard ?? batch.standard,
         expiryDate: nextExpiryDate ?? null,
         lastUpdateTxHash: txHash,
@@ -160,36 +163,6 @@ export class RecordProductTxUseCase {
           txHash
         );
       }
-      return;
-    }
-
-    if (action === "REVOKE") {
-      await this.repository.markBatchRevoked(assetName);
-
-      const receivers = params.receivers ?? [];
-      if (receivers.length > 0) {
-        const profile = await (this.prisma as any).profile.findUnique({
-          where: { id: profileId },
-          select: { walletAddress: true },
-        });
-        const senderAddress =
-          profile?.walletAddress && typeof profile.walletAddress === "string"
-            ? profile.walletAddress.trim()
-            : "";
-        await this.repository.createRoadmaps(
-          assetName,
-          "REVOKE",
-          senderAddress,
-          receivers,
-          txHash
-        );
-      }
-      return;
-    }
-
-    if (action === "BURN") {
-      await this.repository.markBatchBurned(assetName, txHash);
-      await this.warehouse.markAsBurned(profileId, assetName);
       return;
     }
   }

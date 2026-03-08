@@ -69,6 +69,7 @@ let ProductController = class ProductController {
             minterLocation: body.minterLocation,
             minterCoordinates: body.minterCoordinates,
             propertiesJson: body.propertiesJson,
+            certificate: body.certificate,
             walletUtxos: body.walletUtxos,
             utxoAddresses: body.utxoAddresses,
         });
@@ -107,6 +108,7 @@ let ProductController = class ProductController {
             minterLocation: body.minterLocation,
             minterCoordinates: body.minterCoordinates,
             propertiesJson: body.propertiesJson,
+            certificate: body.certificate,
             certUnit: body.certUnit,
             walletUtxos: body.walletUtxos,
             utxoAddresses: body.utxoAddresses,
@@ -164,6 +166,7 @@ let ProductController = class ProductController {
             name: body.name,
             description: body.description,
             image: (_a = body.image) !== null && _a !== void 0 ? _a : "",
+            certificate: body.certificate,
             standard: body.standard,
             properties: body.properties,
             metadata: body.metadata,
@@ -191,42 +194,11 @@ let ProductController = class ProductController {
             name: body.name,
             description: body.description,
             image: body.image,
+            certificate: body.certificate,
             standard: body.standard,
             properties: body.properties,
             metadata: body.metadata,
             receivers: body.receivers,
-        });
-        return { ok: true };
-    }
-    async revokeConfirm(body, token) {
-        if (!token || typeof token !== "string" || !token.trim()) {
-            throw new common_1.UnauthorizedException("Missing or invalid token.");
-        }
-        const role = await this.auth.getProfileRoleFromToken(token.trim());
-        if ((role !== null && role !== void 0 ? role : "").toUpperCase() !== ENTERPRISE_ROLE) {
-            throw new common_1.ForbiddenException("Only ENTERPRISE can confirm revoke.");
-        }
-        if (!body.txHash || !body.assetName || body.profileId == null) {
-            throw new common_1.BadRequestException("Missing txHash, assetName or profileId");
-        }
-        await this.product.recordTx({
-            action: "REVOKE",
-            txHash: body.txHash,
-            assetName: body.assetName,
-            profileId: body.profileId,
-            receivers: body.receivers,
-        });
-        return { ok: true };
-    }
-    async burnConfirm(body) {
-        if (!body.txHash || !body.assetName || body.profileId == null) {
-            throw new common_1.BadRequestException("Missing txHash, assetName or profileId");
-        }
-        await this.product.recordTx({
-            action: "BURN",
-            txHash: body.txHash,
-            assetName: body.assetName,
-            profileId: body.profileId,
         });
         return { ok: true };
     }
@@ -236,7 +208,7 @@ let ProductController = class ProductController {
         if (!raw || typeof raw !== "string") {
             throw new common_1.BadRequestException("Missing signedTx or signedTxBase64");
         }
-        return this.product.submitSignedTx(raw, !!body.signedTxBase64);
+        return this.product.submitSignedTx(raw, !!body.signedTxBase64, body.deleteBatchOnSuccess);
     }
     async getRoadmap(code, token) {
         if (!token || typeof token !== "string" || !token.trim()) {
@@ -251,6 +223,12 @@ let ProductController = class ProductController {
         }
         const items = await this.product.listRoadmap(code.trim());
         return { items };
+    }
+    async getBatchQrPayload(code) {
+        if (!code || typeof code !== "string" || !code.trim()) {
+            throw new common_1.BadRequestException("code is required");
+        }
+        return this.product.getBatchQrPayload(code.trim());
     }
     async getBatchByCode(code) {
         if (!code || typeof code !== "string" || !code.trim()) {
@@ -315,21 +293,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ProductController.prototype, "updateConfirm", null);
 __decorate([
-    (0, common_1.Post)("revoke/confirm"),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Query)("token")),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [product_dto_1.RevokeConfirmDto, String]),
-    __metadata("design:returntype", Promise)
-], ProductController.prototype, "revokeConfirm", null);
-__decorate([
-    (0, common_1.Post)("burn/confirm"),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [product_dto_1.BurnConfirmDto]),
-    __metadata("design:returntype", Promise)
-], ProductController.prototype, "burnConfirm", null);
-__decorate([
     (0, common_1.Post)("submit"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -344,6 +307,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], ProductController.prototype, "getRoadmap", null);
+__decorate([
+    (0, common_1.Get)("batch/:code/qr-payload"),
+    __param(0, (0, common_1.Param)("code")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ProductController.prototype, "getBatchQrPayload", null);
 __decorate([
     (0, common_1.Get)("batch/:code"),
     __param(0, (0, common_1.Param)("code")),

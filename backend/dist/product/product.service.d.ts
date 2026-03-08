@@ -1,5 +1,6 @@
 import type { UTxO } from "@meshsdk/core";
 import { CardanoService } from "../core/cardano/cardano.service";
+import { ConfigService } from "../core/config/config.service";
 import { WarehouseService } from "../warehouse/warehouse.service";
 import { ProductRepositoryPort, type ProductBatchListItem } from "./domain/product.repository";
 import { ListBatchesUseCase } from "./application/use-cases/list-batches.use-case";
@@ -8,14 +9,18 @@ import { ListRoadmapUseCase } from "./application/use-cases/list-roadmap.use-cas
 export type { BuildMetadataInput } from "./product.helpers";
 export declare class ProductService {
     private readonly cardano;
+    private readonly config;
     private readonly warehouse;
     private readonly productRepository;
     private readonly listBatchesUseCase;
     private readonly recordProductTxUseCase;
     private readonly listRoadmapUseCase;
-    constructor(cardano: CardanoService, warehouse: WarehouseService, productRepository: ProductRepositoryPort, listBatchesUseCase: ListBatchesUseCase, recordProductTxUseCase: RecordProductTxUseCase, listRoadmapUseCase: ListRoadmapUseCase);
+    constructor(cardano: CardanoService, config: ConfigService, warehouse: WarehouseService, productRepository: ProductRepositoryPort, listBatchesUseCase: ListBatchesUseCase, recordProductTxUseCase: RecordProductTxUseCase, listRoadmapUseCase: ListRoadmapUseCase);
     private createContract;
-    listBatches(profileId: number): Promise<ProductBatchListItem[]>;
+    listBatches(profileId: number): Promise<(ProductBatchListItem & {
+        canUpdate: boolean;
+    })[]>;
+    private getCanUpdate;
     listRoadmap(batchId: string): Promise<{
         stepIndex: number;
         toAddress: string | null;
@@ -33,6 +38,7 @@ export declare class ProductService {
         minterLocation?: string;
         minterCoordinates?: string;
         propertiesJson?: string;
+        certificate?: string;
         walletUtxos?: UTxO[];
         utxoAddresses?: string[];
     }): Promise<{
@@ -52,6 +58,7 @@ export declare class ProductService {
         minterLocation?: string;
         minterCoordinates?: string;
         propertiesJson?: string;
+        certificate?: string;
         certUnit?: string;
         walletUtxos?: UTxO[];
         utxoAddresses?: string[];
@@ -82,14 +89,21 @@ export declare class ProductService {
         assetName: string;
         nftUnit: string | null;
     }>;
+    getBatchQrPayload(code: string): Promise<{
+        policyId: string;
+        assetName: string;
+        minter: string | null;
+        owners: string[];
+    }>;
     recordTx(params: {
-        action: "MINT" | "UPDATE" | "REVOKE" | "BURN";
+        action: "MINT" | "UPDATE";
         txHash: string;
         assetName: string;
         profileId: number;
         name?: string;
         description?: string;
         image?: string;
+        certificate?: string;
         standard?: string;
         properties?: object;
         metadata?: object;
@@ -98,7 +112,10 @@ export declare class ProductService {
     }): Promise<void>;
     removeOneFromWarehouse(profileId: number, batchId: string): Promise<void>;
     addToWarehouse(profileId: number, batchId: string): Promise<void>;
-    submitSignedTx(signedTxInput: string, fromBase64?: boolean): Promise<{
+    submitSignedTx(signedTxInput: string, fromBase64: boolean, deleteBatchOnSuccess?: {
+        assetName: string;
+        action: "burn222" | "burnRef100";
+    }): Promise<{
         txHash: string;
     }>;
 }

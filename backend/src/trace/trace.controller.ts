@@ -11,17 +11,37 @@ export class TraceController {
     if (!body?.policyId?.trim() || !body?.assetName?.trim()) {
       throw new BadRequestException("policyId and assetName are required.");
     }
-    return this.traceService.trace(body.policyId.trim(), body.assetName.trim());
+    return this.traceService.trace(
+      body.policyId.trim(),
+      body.assetName.trim(),
+      undefined
+    );
   }
 
-  @Get()
-  async getTrace(
+  @Get("history")
+  async getHistory(
     @Query("policyId") policyId: string,
     @Query("assetName") assetName: string,
   ) {
     if (!policyId?.trim() || !assetName?.trim()) {
       throw new BadRequestException("policyId and assetName are required.");
     }
-    return this.traceService.trace(policyId.trim(), assetName.trim());
+    return this.traceService.getHistory(policyId.trim(), assetName.trim());
+  }
+
+  @Get()
+  async getTrace(
+    @Query("policyId") policyId: string,
+    @Query("assetName") assetName: string,
+    @Query("atTxHash") atTxHash?: string,
+  ) {
+    if (!policyId?.trim() || !assetName?.trim()) {
+      throw new BadRequestException("policyId and assetName are required.");
+    }
+    return this.traceService.trace(
+      policyId.trim(),
+      assetName.trim(),
+      atTxHash?.trim() || undefined
+    );
   }
 }

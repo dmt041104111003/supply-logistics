@@ -25,9 +25,12 @@ type Props = {
   minterCoordinates: string;
   imageUrl: string;
   imageInputRef: RefObject<HTMLInputElement | null>;
-  certificateOptions: { id: number; title: string }[];
-  selectedCertificateIds: number[];
-  onCertificateIdsChange: (ids: number[]) => void;
+  certificateUrl: string;
+  certificateUploading: boolean;
+  certificateInputRef: RefObject<HTMLInputElement | null>;
+  onCertificateUrlChange: (v: string) => void;
+  onCertificateUploadClick: () => void;
+  onCertificateFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onClose: () => void;
   onSubmit: (e: FormEvent) => void;
   onNameChange: (v: string) => void;
@@ -70,9 +73,12 @@ export function ProductDialog(props: Props) {
     minterCoordinates,
     imageUrl,
     imageInputRef,
-    certificateOptions,
-    selectedCertificateIds,
-    onCertificateIdsChange,
+    certificateUrl,
+    certificateUploading,
+    certificateInputRef,
+    onCertificateUrlChange,
+    onCertificateUploadClick,
+    onCertificateFileChange,
     onClose,
     onSubmit,
     onNameChange,
@@ -191,80 +197,45 @@ export function ProductDialog(props: Props) {
               />
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Import certificates</label>
+              <label className={styles.label}>Certificate (optional)</label>
               <p className={styles.formHint} style={{ marginBottom: 6 }}>
-                Attach certificates to this product. Create certificates in Certificates first, then select them here.
+                Upload a certificate document (PDF, image) to IPFS. It will be stored on-chain and shown on the trace page.
               </p>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-                <select
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                }}
+              >
+                <input
                   className={styles.input}
+                  value={certificateUrl}
+                  onChange={(e) => onCertificateUrlChange(e.target.value)}
+                  placeholder="Upload certificate or paste ipfs:// hash"
                   style={{ flex: '1 1 200px' }}
-                  value=""
-                  onChange={(e) => {
-                    const id = parseInt(e.target.value, 10);
-                    if (Number.isNaN(id)) return;
-                    if (!selectedCertificateIds.includes(id)) {
-                      onCertificateIdsChange([...selectedCertificateIds, id]);
-                    }
-                    requestAnimationFrame(() => {
-                      (e.target as HTMLSelectElement).value = '';
-                    });
-                  }}
+                />
+                <input
+                  ref={certificateInputRef}
+                  type="file"
+                  accept=".pdf,image/*"
+                  style={{ display: 'none' }}
+                  onChange={onCertificateFileChange}
+                />
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={onCertificateUploadClick}
+                  disabled={certificateUploading}
                 >
-                  <option value="">Select certificate to attach</option>
-                  {certificateOptions
-                    .filter((c) => !selectedCertificateIds.includes(c.id))
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.title} (#{c.id})
-                      </option>
-                    ))}
-                </select>
+                  {certificateUploading ? 'Uploading...' : 'Upload to IPFS'}
+                </button>
               </div>
-              {selectedCertificateIds.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {selectedCertificateIds.map((id) => {
-                    const cert = certificateOptions.find((c) => c.id === id);
-                    return (
-                      <div
-                        key={id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '4px 10px',
-                          borderRadius: 6,
-                          background: 'var(--accent-bg, #eff6ff)',
-                          fontSize: 14,
-                        }}
-                      >
-                        <span>{cert ? cert.title : `Certificate`} (#{id})</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onCertificateIdsChange(selectedCertificateIds.filter((x) => x !== id))
-                          }
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#ef4444',
-                            fontWeight: 600,
-                            fontSize: 16,
-                            lineHeight: 1,
-                            padding: '2px 6px',
-                          }}
-                          aria-label="Remove"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {certificateOptions.length === 0 && (
-                <p className={styles.formHint}>No certificates yet. Add them in Certificates.</p>
+              {certificateUrl && (
+                <p className={styles.formHint} style={{ marginTop: 4 }}>
+                  Certificate: <code style={{ fontSize: 12 }}>{certificateUrl}</code>
+                </p>
               )}
             </div>
             <div className={styles.formGroup}>

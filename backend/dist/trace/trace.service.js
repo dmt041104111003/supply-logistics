@@ -12,17 +12,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TraceService = void 0;
 const common_1 = require("@nestjs/common");
 const trace_asset_use_case_1 = require("./application/use-cases/trace-asset.use-case");
+const trace_history_use_case_1 = require("./application/use-cases/trace-history.use-case");
 let TraceService = class TraceService {
-    constructor(traceAssetUseCase) {
+    constructor(traceAssetUseCase, traceHistoryUseCase) {
         this.traceAssetUseCase = traceAssetUseCase;
+        this.traceHistoryUseCase = traceHistoryUseCase;
     }
-    async trace(policyId, assetName) {
-        return this.traceAssetUseCase.execute(policyId, assetName);
+    async trace(policyId, assetName, atTxHash) {
+        return this.traceAssetUseCase.execute(policyId, assetName, atTxHash);
+    }
+    async getHistory(policyId, assetName) {
+        return this.traceHistoryUseCase.execute(policyId, assetName);
     }
 };
 exports.TraceService = TraceService;
 exports.TraceService = TraceService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [trace_asset_use_case_1.TraceAssetUseCase])
+    __metadata("design:paramtypes", [trace_asset_use_case_1.TraceAssetUseCase,
+        trace_history_use_case_1.TraceHistoryUseCase])
 ], TraceService);
 //# sourceMappingURL=trace.service.js.map

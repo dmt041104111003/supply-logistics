@@ -4,10 +4,12 @@ export type Product = {
   nameEn: string;
   descriptionEn: string | null;
   imageUrl: string | null;
+  certificate: string | null;
   sku?: string | null;
   grossWeightKg?: number | null;
   netWeightKg?: number | null;
   originSiteCode?: string | null;
+  canUpdate?: boolean;
 };
 
 export type Account = {

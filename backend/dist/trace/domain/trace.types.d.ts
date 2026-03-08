@@ -12,15 +12,6 @@ export type TraceCoreInfo = {
         minterName: string | null;
         minterLocation: string | null;
     };
-    certificates: Array<{
-        id: number;
-        title: string;
-        number: string | null;
-        authority: string | null;
-        expiryDate: string | null;
-        documentUrl: string | null;
-        issuerName: string | null;
-    }>;
 };
 export type TraceRouteStep = {
     stepIndex: number;
@@ -65,13 +56,6 @@ export type TraceResponse = {
     metadata: Record<string, unknown>;
     properties: Record<string, unknown>;
     certificateUrl: string | null;
-    certificate?: {
-        id: number;
-        title: string;
-        imageUrl: string | null;
-        issuedAt: string;
-        batchId: string;
-    };
     lifecycle: {
         completed: boolean;
         checkpointsPassed: Array<{
@@ -82,13 +66,16 @@ export type TraceResponse = {
         }>;
         missingCheckpoints: string[];
     };
-    burnStatus: "active" | "burned";
+    burnStatus: "active" | "burned" | "revoked";
+    revoked?: boolean;
+    burnedAtAddress?: string | null;
     mapData?: Array<{
         lat: number;
         lng: number;
         label: string;
-        status: "completed" | "pending";
-        pointType?: "origin" | "receiver" | "script" | "outside";
+        status: "completed" | "current" | "pending" | "burned" | "in_transit";
+        pointType?: "origin" | "receiver" | "script" | "outside" | "burned";
+        address?: string | null;
     }>;
     currentLocation?: {
         address: string;
@@ -107,4 +94,5 @@ export type TraceResponse = {
         deliveries: TraceShippingEvidence[];
     };
     inventory?: TraceInventoryInfo | null;
+    snapshotAtTxHash?: string | null;
 };

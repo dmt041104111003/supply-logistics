@@ -24,6 +24,7 @@ export class PrismaProductRepository implements ProductRepositoryPort {
         name: true,
         description: true,
         image: true,
+        certificate: true,
         createdAt: true,
         policyId: true,
         sku: true,
@@ -41,6 +42,7 @@ export class PrismaProductRepository implements ProductRepositoryPort {
         name: b.name,
         description: b.description ?? null,
         image: b.image ?? null,
+        certificate: b.certificate ?? null,
         createdAt: b.createdAt,
         policyId: b.policyId ?? null,
         sku: b.sku ?? null,
@@ -57,6 +59,7 @@ export class PrismaProductRepository implements ProductRepositoryPort {
       name,
       description,
       image,
+      certificate,
       standard,
       mintTxHash,
       policyId,
@@ -75,6 +78,7 @@ export class PrismaProductRepository implements ProductRepositoryPort {
         name,
         description,
         image,
+        certificate: certificate ?? undefined,
         standard,
         mintTxHash,
         policyId: policyId ?? undefined,
@@ -91,6 +95,7 @@ export class PrismaProductRepository implements ProductRepositoryPort {
         name,
         description,
         image,
+        certificate: certificate ?? undefined,
         standard,
         policyId: policyId ?? undefined,
         ...(expiryDate !== undefined && { expiryDate }),
@@ -113,6 +118,7 @@ export class PrismaProductRepository implements ProductRepositoryPort {
       name: batch.name,
       description: batch.description ?? null,
       image: batch.image ?? null,
+      certificate: batch.certificate ?? null,
       standard: batch.standard ?? null,
       policyId: batch.policyId ?? null,
       expiryDate: batch.expiryDate ?? null,
@@ -153,6 +159,7 @@ export class PrismaProductRepository implements ProductRepositoryPort {
       name,
       description,
       image,
+      certificate,
       standard,
       expiryDate,
       lastUpdateTxHash,
@@ -168,6 +175,7 @@ export class PrismaProductRepository implements ProductRepositoryPort {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
         ...(image !== undefined && { image }),
+        ...(certificate !== undefined && { certificate }),
         ...(standard !== undefined && { standard }),
         ...(expiryDate !== undefined && { expiryDate }),
         ...(lastUpdateTxHash !== undefined && { lastUpdateTxHash }),
@@ -180,25 +188,11 @@ export class PrismaProductRepository implements ProductRepositoryPort {
     });
   }
 
-  async markBatchRevoked(code: string): Promise<void> {
-    await (this.prisma as any).productBatch.update({
+  async deleteBatch(batchId: string): Promise<void> {
+    const code = (batchId || "").trim();
+    if (!code) return;
+    await (this.prisma as any).productBatch.delete({
       where: { batchId: code },
-      data: {
-        revoked: true,
-        revokeTxHash: undefined,
-        revokedAt: new Date(),
-      },
-    });
-  }
-
-  async markBatchBurned(code: string, burnTxHash: string): Promise<void> {
-    await (this.prisma as any).productBatch.update({
-      where: { batchId: code },
-      data: {
-        burned: true,
-        burnTxHash,
-        burnedAt: new Date(),
-      },
     });
   }
 
@@ -226,8 +220,14 @@ export class PrismaProductRepository implements ProductRepositoryPort {
     const prisma = this.prisma as any;
     const bid = (batchId || "").trim();
     if (!bid) return [];
-    const rows = await prisma.roadmap.findMany({
+    const batch = await prisma.productBatch.findUnique({
       where: { batchId: bid },
+      select: { lastUpdateTxHash: true, mintTxHash: true },
+    });
+    const currentTxHash = batch?.lastUpdateTxHash ?? batch?.mintTxHash;
+    if (!currentTxHash || typeof currentTxHash !== "string") return [];
+    const rows = await prisma.roadmap.findMany({
+      where: { batchId: bid, txHash: currentTxHash },
       orderBy: { stepIndex: "asc" },
       select: { stepIndex: true, fromAddress: true, toAddress: true },
     });

@@ -8,8 +8,6 @@ import {
   BurnProductDto,
   MintConfirmDto,
   UpdateConfirmDto,
-  RevokeConfirmDto,
-  BurnConfirmDto,
   SubmitTxDto,
 } from "./dto/product.dto";
 
@@ -27,7 +25,7 @@ export class ProductController {
     @Query("token") token?: string,
   ): Promise<{
     total: number;
-    items: { id: number; batchId: string; name: string; description: string | null; image: string | null; createdAt: Date; policyId: string | null; sku: string | null; grossWeightKg: number | null; netWeightKg: number | null; originSiteCode: string | null }[];
+    items: { id: number; batchId: string; name: string; description: string | null; image: string | null; certificate: string | null; createdAt: Date; policyId: string | null; sku: string | null; grossWeightKg: number | null; netWeightKg: number | null; originSiteCode: string | null; canUpdate: boolean }[];
   }> {
     if (!token || typeof token !== "string" || !token.trim()) {
       throw new UnauthorizedException("Missing or invalid token.");
@@ -82,6 +80,7 @@ export class ProductController {
       minterLocation: body.minterLocation,
       minterCoordinates: body.minterCoordinates,
       propertiesJson: body.propertiesJson,
+      certificate: body.certificate,
       walletUtxos: body.walletUtxos as any,
       utxoAddresses: body.utxoAddresses,
     });
@@ -128,6 +127,7 @@ export class ProductController {
       minterLocation: body.minterLocation,
       minterCoordinates: body.minterCoordinates,
       propertiesJson: body.propertiesJson,
+      certificate: body.certificate,
       certUnit: body.certUnit,
       walletUtxos: body.walletUtxos as any,
       utxoAddresses: body.utxoAddresses,
@@ -198,6 +198,7 @@ export class ProductController {
       name: body.name,
       description: body.description,
       image: body.image ?? "",
+      certificate: body.certificate,
       standard: body.standard,
       properties: body.properties,
       metadata: body.metadata,
@@ -230,51 +231,11 @@ export class ProductController {
       name: body.name,
       description: body.description,
       image: body.image,
+      certificate: body.certificate,
       standard: body.standard,
       properties: body.properties,
       metadata: body.metadata,
       receivers: body.receivers,
-    });
-    return { ok: true };
-  }
-
-  @Post("revoke/confirm")
-  async revokeConfirm(
-    @Body() body: RevokeConfirmDto,
-    @Query("token") token?: string,
-  ): Promise<{ ok: boolean }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    const role = await this.auth.getProfileRoleFromToken(token.trim());
-    if ((role ?? "").toUpperCase() !== ENTERPRISE_ROLE) {
-      throw new ForbiddenException("Only ENTERPRISE can confirm revoke.");
-    }
-    if (!body.txHash || !body.assetName || body.profileId == null) {
-      throw new BadRequestException("Missing txHash, assetName or profileId");
-    }
-    await this.product.recordTx({
-      action: "REVOKE",
-      txHash: body.txHash,
-      assetName: body.assetName,
-      profileId: body.profileId,
-      receivers: body.receivers,
-    });
-    return { ok: true };
-  }
-
-  @Post("burn/confirm")
-  async burnConfirm(
-    @Body() body: BurnConfirmDto,
-  ): Promise<{ ok: boolean }> {
-    if (!body.txHash || !body.assetName || body.profileId == null) {
-      throw new BadRequestException("Missing txHash, assetName or profileId");
-    }
-    await this.product.recordTx({
-      action: "BURN",
-      txHash: body.txHash,
-      assetName: body.assetName,
-      profileId: body.profileId,
     });
     return { ok: true };
   }
@@ -287,7 +248,11 @@ export class ProductController {
     if (!raw || typeof raw !== "string") {
       throw new BadRequestException("Missing signedTx or signedTxBase64");
     }
-    return this.product.submitSignedTx(raw, !!body.signedTxBase64);
+    return this.product.submitSignedTx(
+      raw,
+      !!body.signedTxBase64,
+      body.deleteBatchOnSuccess,
+    );
   }
 
   @Get("roadmap")
@@ -307,6 +272,16 @@ export class ProductController {
     }
     const items = await this.product.listRoadmap(code.trim());
     return { items };
+  }
+
+  @Get("batch/:code/qr-payload")
+  async getBatchQrPayload(
+    @Param("code") code: string,
+  ): Promise<{ policyId: string; assetName: string; minter: string | null; owners: string[] }> {
+    if (!code || typeof code !== "string" || !code.trim()) {
+      throw new BadRequestException("code is required");
+    }
+    return this.product.getBatchQrPayload(code.trim());
   }
 
   @Get("batch/:code")

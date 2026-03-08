@@ -1,6 +1,7 @@
 import {
   applyParamsToScript,
   deserializeAddress,
+  mPubKeyAddress,
   resolveScriptHash,
   scriptAddress,
   serializeAddressObj,
@@ -32,7 +33,12 @@ export function computeMintScriptCborForMinterAddress(
   };
 
   const storeCompileCode = readValidator(t.store);
-  const storeScriptCbor = applyParamsToScript(storeCompileCode, [pubKeyIssuer]);
+  const ownerAddress = mPubKeyAddress(pubKeyIssuer, stakeCredentialHash);
+  const storeScriptCbor = applyParamsToScript(
+    storeCompileCode,
+    [[ownerAddress]],
+    "Mesh"
+  );
   const storeScript = { code: storeScriptCbor, version: "V3" as const };
   const storeScriptAddress = serializePlutusScript(
     storeScript,
@@ -42,18 +48,17 @@ export function computeMintScriptCborForMinterAddress(
   ).address;
   const storeScriptHash = deserializeAddress(storeScriptAddress).scriptHash;
 
-  const storeAddress = serializeAddressObj(
-    scriptAddress(storeScriptHash, stakeCredentialHash, false),
-    networkId
+  const storeAddressForMint = mPubKeyAddress(
+    storeScriptHash,
+    stakeCredentialHash
   );
-  const storeScriptHashWithStake = deserializeAddress(storeAddress).scriptHash;
 
   const mintCompileCode = readValidator(t.mint);
-  const mintScriptCbor = applyParamsToScript(mintCompileCode, [
-    storeScriptHashWithStake,
-    stakeCredentialHash,
-    pubKeyIssuer,
-  ]);
+  const mintScriptCbor = applyParamsToScript(
+    mintCompileCode,
+    [[ownerAddress], storeAddressForMint],
+    "Mesh"
+  );
 
   const policyId = resolveScriptHash(mintScriptCbor, "V3");
   return { mintScriptCbor, policyId };

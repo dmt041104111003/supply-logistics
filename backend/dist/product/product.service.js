@@ -16,6 +16,7 @@ exports.ProductService = void 0;
 const core_1 = require("@meshsdk/core");
 const common_1 = require("@nestjs/common");
 const cardano_service_1 = require("../core/cardano/cardano.service");
+const config_service_1 = require("../core/config/config.service");
 const warehouse_service_1 = require("../warehouse/warehouse.service");
 const cip68_contract_1 = require("../core/cardano/cip68/cip68.contract");
 const mint_script_1 = require("../core/cardano/cip68/mint-script");
@@ -24,9 +25,11 @@ const product_repository_1 = require("./domain/product.repository");
 const list_batches_use_case_1 = require("./application/use-cases/list-batches.use-case");
 const record_product_tx_use_case_1 = require("./application/use-cases/record-product-tx.use-case");
 const list_roadmap_use_case_1 = require("./application/use-cases/list-roadmap.use-case");
+const utils_1 = require("../trace/utils");
 let ProductService = class ProductService {
-    constructor(cardano, warehouse, productRepository, listBatchesUseCase, recordProductTxUseCase, listRoadmapUseCase) {
+    constructor(cardano, config, warehouse, productRepository, listBatchesUseCase, recordProductTxUseCase, listRoadmapUseCase) {
         this.cardano = cardano;
+        this.config = config;
         this.warehouse = warehouse;
         this.productRepository = productRepository;
         this.listBatchesUseCase = listBatchesUseCase;
@@ -38,13 +41,36 @@ let ProductService = class ProductService {
         return new cip68_contract_1.Cip68Contract(Object.assign({ wallet: wallet }, ((opts === null || opts === void 0 ? void 0 : opts.minterMintScriptCbor) ? { minterMintScriptCbor: opts.minterMintScriptCbor } : {})));
     }
     async listBatches(profileId) {
-        return this.listBatchesUseCase.execute(profileId);
+        const items = await this.listBatchesUseCase.execute(profileId);
+        const withCanUpdate = await Promise.all(items.map(async (item) => (Object.assign(Object.assign({}, item), { canUpdate: await this.getCanUpdate(item.batchId, item.policyId) }))));
+        return withCanUpdate;
+    }
+    async getCanUpdate(batchId, policyId) {
+        var _a;
+        if (!(policyId === null || policyId === void 0 ? void 0 : policyId.trim()))
+            return false;
+        const minterAddr = await this.productRepository.getMinterWalletAddressByBatchCode(batchId);
+        if (!(minterAddr === null || minterAddr === void 0 ? void 0 : minterAddr.trim()))
+            return false;
+        const prefix222 = this.config.cip68Prefix.USER_222;
+        const nft222Unit = (0, utils_1.buildNft222Unit)(policyId.trim(), batchId.trim(), prefix222);
+        try {
+            const holders = await this.cardano.blockfrostFetcher.fetchAssetAddresses(nft222Unit);
+            if (!Array.isArray(holders) || holders.length === 0)
+                return false;
+            const first = holders[0];
+            const holderAddr = (_a = first === null || first === void 0 ? void 0 : first.address) === null || _a === void 0 ? void 0 : _a.trim().toLowerCase();
+            return holderAddr === minterAddr.trim().toLowerCase();
+        }
+        catch (_b) {
+            return false;
+        }
     }
     async listRoadmap(batchId) {
         return this.listRoadmapUseCase.execute(batchId);
     }
     async mint(params) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         const contract = this.createContract(params.changeAddress, {
             walletUtxos: params.walletUtxos,
             utxoAddresses: params.utxoAddresses,
@@ -52,8 +78,59 @@ let ProductService = class ProductService {
         let metadata;
         let receiver;
         if (params.metadata) {
-            metadata = params.metadata;
-            receiver = (_a = params.receiver) !== null && _a !== void 0 ? _a : params.changeAddress;
+            metadata = Object.assign({}, params.metadata);
+            if ((_a = params.certificate) === null || _a === void 0 ? void 0 : _a.trim())
+                metadata.certificate = params.certificate.trim();
+            receiver = (_b = params.receiver) !== null && _b !== void 0 ? _b : params.changeAddress;
+        }
+        else {
+            if (!params.name ||
+                !params.image ||
+                !((_c = params.receivers) === null || _c === void 0 ? void 0 : _c.length) ||
+                !params.receiverLocations ||
+                !params.receiverCoordinates ||
+                !params.minterLocation ||
+                !params.minterCoordinates) {
+                throw new common_1.BadRequestException("Need metadata or all of (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)");
+            }
+            const addrObj = (0, core_1.deserializeAddress)(params.changeAddress);
+            const receiversPk = params.receivers.map((addr) => (0, core_1.resolvePaymentKeyHash)(addr)).join(",");
+            metadata = (0, product_helpers_1.buildMetadata)({
+                pk: addrObj.pubKeyHash,
+                receivers: receiversPk,
+                receiver_locations: params.receiverLocations,
+                receiver_coordinates: params.receiverCoordinates,
+                minter_location: params.minterLocation,
+                minter_coordinates: params.minterCoordinates,
+                name: params.name,
+                image: params.image,
+                properties: params.propertiesJson,
+                standard: "Traceability-v1",
+                minter_address: params.changeAddress,
+                receiver_addresses: params.receivers.join(","),
+            });
+            receiver = params.changeAddress;
+        }
+        const unsignedTx = await contract.mint([
+            { assetName: params.assetName, metadata, quantity: "1", receiver },
+        ]);
+        const policyId = (_d = contract.policyId) !== null && _d !== void 0 ? _d : undefined;
+        return { unsignedTx, policyId };
+    }
+    async update(params) {
+        var _a, _b;
+        const contract = this.createContract(params.changeAddress, {
+            walletUtxos: params.walletUtxos,
+            utxoAddresses: params.utxoAddresses,
+        });
+        let metadata;
+        if (params.metadata) {
+            metadata = Object.assign({}, params.metadata);
+            if (params.certUnit != null && params.certUnit.trim() !== "") {
+                metadata._cert_unit = params.certUnit.trim();
+            }
+            if ((_a = params.certificate) === null || _a === void 0 ? void 0 : _a.trim())
+                metadata.certificate = params.certificate.trim();
         }
         else {
             if (!params.name ||
@@ -78,51 +155,9 @@ let ProductService = class ProductService {
                 image: params.image,
                 properties: params.propertiesJson,
                 standard: "Traceability-v1",
-            });
-            receiver = params.changeAddress;
-        }
-        const unsignedTx = await contract.mint([
-            { assetName: params.assetName, metadata, quantity: "1", receiver },
-        ]);
-        const policyId = (_c = contract.policyId) !== null && _c !== void 0 ? _c : undefined;
-        return { unsignedTx, policyId };
-    }
-    async update(params) {
-        var _a;
-        const contract = this.createContract(params.changeAddress, {
-            walletUtxos: params.walletUtxos,
-            utxoAddresses: params.utxoAddresses,
-        });
-        let metadata;
-        if (params.metadata) {
-            metadata = Object.assign({}, params.metadata);
-            if (params.certUnit != null && params.certUnit.trim() !== "") {
-                metadata._cert_unit = params.certUnit.trim();
-            }
-        }
-        else {
-            if (!params.name ||
-                !params.image ||
-                !((_a = params.receivers) === null || _a === void 0 ? void 0 : _a.length) ||
-                !params.receiverLocations ||
-                !params.receiverCoordinates ||
-                !params.minterLocation ||
-                !params.minterCoordinates) {
-                throw new common_1.BadRequestException("Need metadata or all of (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)");
-            }
-            const addrObj = (0, core_1.deserializeAddress)(params.changeAddress);
-            const receiversPk = params.receivers.map((addr) => (0, core_1.resolvePaymentKeyHash)(addr)).join(",");
-            metadata = (0, product_helpers_1.buildMetadata)({
-                pk: addrObj.pubKeyHash,
-                receivers: receiversPk,
-                receiver_locations: params.receiverLocations,
-                receiver_coordinates: params.receiverCoordinates,
-                minter_location: params.minterLocation,
-                minter_coordinates: params.minterCoordinates,
-                name: params.name,
-                image: params.image,
-                properties: params.propertiesJson,
-                standard: "Traceability-v1",
+                minter_address: params.changeAddress,
+                receiver_addresses: params.receivers.join(","),
+                certificate: params.certificate,
             });
         }
         const unsignedTx = await contract.update([
@@ -135,7 +170,7 @@ let ProductService = class ProductService {
             walletUtxos: params.walletUtxos,
             utxoAddresses: params.utxoAddresses,
         });
-        const unsignedTx = await contract.revoke([
+        const unsignedTx = await contract.burnRef100([
             { assetName: params.assetName, txHash: params.txHash },
         ]);
         return { unsignedTx };
@@ -177,7 +212,7 @@ let ProductService = class ProductService {
                 }
             }
         }
-        const unsignedTx = await contract.burn([
+        const unsignedTx = await contract.burn222([
             {
                 assetName: params.assetName,
                 quantity: "1",
@@ -198,6 +233,24 @@ let ProductService = class ProductService {
             nftUnit: null,
         };
     }
+    async getBatchQrPayload(code) {
+        var _a;
+        const batch = await this.productRepository.findBatchByCode(code);
+        if (!batch) {
+            throw new common_1.BadRequestException(`Batch not found: ${code}`);
+        }
+        const minter = await this.productRepository.getMinterWalletAddressByBatchCode(code);
+        const roadmap = await this.listRoadmapUseCase.execute(code);
+        const owners = roadmap
+            .map((r) => { var _a; return (_a = r.toAddress) === null || _a === void 0 ? void 0 : _a.trim(); })
+            .filter((addr) => !!addr);
+        return {
+            policyId: (_a = batch.policyId) !== null && _a !== void 0 ? _a : "",
+            assetName: batch.batchId,
+            minter: minter !== null && minter !== void 0 ? minter : null,
+            owners,
+        };
+    }
     async recordTx(params) {
         return this.recordProductTxUseCase.execute(params);
     }
@@ -207,14 +260,14 @@ let ProductService = class ProductService {
     async addToWarehouse(profileId, batchId) {
         return this.warehouse.addToWarehouse(profileId, batchId);
     }
-    async submitSignedTx(signedTxInput, fromBase64 = false) {
-        var _a, _b, _c, _d, _e;
+    async submitSignedTx(signedTxInput, fromBase64, deleteBatchOnSuccess) {
+        var _a, _b, _c, _d, _e, _f;
         let cborBuffer;
         if (fromBase64) {
             try {
                 cborBuffer = Buffer.from(signedTxInput, "base64");
             }
-            catch (_f) {
+            catch (_g) {
                 throw new common_1.BadRequestException("signedTxBase64 is invalid");
             }
         }
@@ -226,7 +279,7 @@ let ProductService = class ProductService {
                 if (stripped.startsWith("{"))
                     parsed = JSON.parse(stripped);
             }
-            catch (_g) {
+            catch (_h) {
                 parsed = stripped;
             }
             const str = typeof parsed === "object" && parsed !== null
@@ -242,7 +295,7 @@ let ProductService = class ProductService {
                     const bytes = Buffer.from(s, "base64");
                     signedTxHex = Buffer.from(bytes).toString("hex");
                 }
-                catch (_h) {
+                catch (_j) {
                     throw new common_1.BadRequestException("signedTx must be hex or base64");
                 }
             }
@@ -255,14 +308,22 @@ let ProductService = class ProductService {
             throw new common_1.BadRequestException(`signedTx is not valid CBOR tx (first byte 0x${first.toString(16).padStart(2, "0")}, length ${cborBuffer.length}). Wallet may return a different format.`);
         }
         const txHash = await this.cardano.blockfrostFetcher.submitTx(cborBuffer);
+        if ((_f = deleteBatchOnSuccess === null || deleteBatchOnSuccess === void 0 ? void 0 : deleteBatchOnSuccess.assetName) === null || _f === void 0 ? void 0 : _f.trim()) {
+            try {
+                await this.productRepository.deleteBatch(deleteBatchOnSuccess.assetName.trim());
+            }
+            catch (_k) {
+            }
+        }
         return { txHash };
     }
 };
 exports.ProductService = ProductService;
 exports.ProductService = ProductService = __decorate([
     (0, common_1.Injectable)(),
-    __param(2, (0, common_1.Inject)(product_repository_1.PRODUCT_REPOSITORY)),
+    __param(3, (0, common_1.Inject)(product_repository_1.PRODUCT_REPOSITORY)),
     __metadata("design:paramtypes", [cardano_service_1.CardanoService,
+        config_service_1.ConfigService,
         warehouse_service_1.WarehouseService, Object, list_batches_use_case_1.ListBatchesUseCase,
         record_product_tx_use_case_1.RecordProductTxUseCase,
         list_roadmap_use_case_1.ListRoadmapUseCase])

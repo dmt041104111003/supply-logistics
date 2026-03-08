@@ -2,6 +2,7 @@ import type { UTxO } from "@meshsdk/core";
 import { deserializeAddress, resolvePaymentKeyHash } from "@meshsdk/core";
 import { Inject, Injectable, BadRequestException } from "@nestjs/common";
 import { CardanoService } from "../core/cardano/cardano.service";
+import { ConfigService } from "../core/config/config.service";
 import { WarehouseService } from "../warehouse/warehouse.service";
 import { Cip68Contract } from "../core/cardano/cip68/cip68.contract";
 import { computeMintScriptCborForMinterAddress } from "../core/cardano/cip68/mint-script";
@@ -14,6 +15,7 @@ import {
 import { ListBatchesUseCase } from "./application/use-cases/list-batches.use-case";
 import { RecordProductTxUseCase } from "./application/use-cases/record-product-tx.use-case";
 import { ListRoadmapUseCase } from "./application/use-cases/list-roadmap.use-case";
+import { buildNft222Unit } from "../trace/utils";
 
 export type { BuildMetadataInput } from "./product.helpers";
 
@@ -21,6 +23,7 @@ export type { BuildMetadataInput } from "./product.helpers";
 export class ProductService {
   constructor(
     private readonly cardano: CardanoService,
+    private readonly config: ConfigService,
     private readonly warehouse: WarehouseService,
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: ProductRepositoryPort,
@@ -45,8 +48,32 @@ export class ProductService {
     });
   }
 
-  async listBatches(profileId: number): Promise<ProductBatchListItem[]> {
-    return this.listBatchesUseCase.execute(profileId);
+  async listBatches(profileId: number): Promise<(ProductBatchListItem & { canUpdate: boolean })[]> {
+    const items = await this.listBatchesUseCase.execute(profileId);
+    const withCanUpdate = await Promise.all(
+      items.map(async (item) => ({
+        ...item,
+        canUpdate: await this.getCanUpdate(item.batchId, item.policyId),
+      }))
+    );
+    return withCanUpdate;
+  }
+
+  private async getCanUpdate(batchId: string, policyId: string | null): Promise<boolean> {
+    if (!policyId?.trim()) return false;
+    const minterAddr = await this.productRepository.getMinterWalletAddressByBatchCode(batchId);
+    if (!minterAddr?.trim()) return false;
+    const prefix222 = this.config.cip68Prefix.USER_222;
+    const nft222Unit = buildNft222Unit(policyId.trim(), batchId.trim(), prefix222);
+    try {
+      const holders = await this.cardano.blockfrostFetcher.fetchAssetAddresses(nft222Unit);
+      if (!Array.isArray(holders) || holders.length === 0) return false;
+      const first = holders[0];
+      const holderAddr = first?.address?.trim().toLowerCase();
+      return holderAddr === minterAddr.trim().toLowerCase();
+    } catch {
+      return false;
+    }
   }
 
   async listRoadmap(batchId: string): Promise<{ stepIndex: number; toAddress: string | null }[]> {
@@ -66,6 +93,7 @@ export class ProductService {
     minterLocation?: string;
     minterCoordinates?: string;
     propertiesJson?: string;
+    certificate?: string;
     walletUtxos?: UTxO[];
     utxoAddresses?: string[];
   }): Promise<{ unsignedTx: string; policyId?: string }> {
@@ -76,7 +104,8 @@ export class ProductService {
     let metadata: Record<string, string>;
     let receiver: string;
     if (params.metadata) {
-      metadata = params.metadata;
+      metadata = { ...params.metadata };
+      if (params.certificate?.trim()) metadata.certificate = params.certificate.trim();
       receiver = params.receiver ?? params.changeAddress;
     } else {
       if (
@@ -105,6 +134,8 @@ export class ProductService {
         image: params.image,
         properties: params.propertiesJson,
         standard: "Traceability-v1",
+        minter_address: params.changeAddress,
+        receiver_addresses: params.receivers.join(","),
       });
       receiver = params.changeAddress;
     }
@@ -128,6 +159,7 @@ export class ProductService {
     minterLocation?: string;
     minterCoordinates?: string;
     propertiesJson?: string;
+    certificate?: string;
     certUnit?: string;
     walletUtxos?: UTxO[];
     utxoAddresses?: string[];
@@ -142,6 +174,7 @@ export class ProductService {
       if (params.certUnit != null && params.certUnit.trim() !== "") {
         metadata._cert_unit = params.certUnit.trim();
       }
+      if (params.certificate?.trim()) metadata.certificate = params.certificate.trim();
     } else {
       if (
         !params.name ||
@@ -169,6 +202,9 @@ export class ProductService {
         image: params.image,
         properties: params.propertiesJson,
         standard: "Traceability-v1",
+        minter_address: params.changeAddress,
+        receiver_addresses: params.receivers.join(","),
+        certificate: params.certificate,
       });
     }
     const unsignedTx = await contract.update([
@@ -188,7 +224,7 @@ export class ProductService {
       walletUtxos: params.walletUtxos,
       utxoAddresses: params.utxoAddresses,
     });
-    const unsignedTx = await contract.revoke([
+    const unsignedTx = await contract.burnRef100([
       { assetName: params.assetName, txHash: params.txHash },
     ]);
     return { unsignedTx };
@@ -242,7 +278,7 @@ export class ProductService {
         }
       }
     }
-    const unsignedTx = await contract.burn([
+    const unsignedTx = await contract.burn222([
       {
         assetName: params.assetName,
         quantity: "1",
@@ -265,14 +301,38 @@ export class ProductService {
     };
   }
 
+  async getBatchQrPayload(code: string): Promise<{
+    policyId: string;
+    assetName: string;
+    minter: string | null;
+    owners: string[];
+  }> {
+    const batch = await this.productRepository.findBatchByCode(code);
+    if (!batch) {
+      throw new BadRequestException(`Batch not found: ${code}`);
+    }
+    const minter = await this.productRepository.getMinterWalletAddressByBatchCode(code);
+    const roadmap = await this.listRoadmapUseCase.execute(code);
+    const owners = roadmap
+      .map((r) => r.toAddress?.trim())
+      .filter((addr): addr is string => !!addr);
+    return {
+      policyId: batch.policyId ?? "",
+      assetName: batch.batchId,
+      minter: minter ?? null,
+      owners,
+    };
+  }
+
   async recordTx(params: {
-    action: "MINT" | "UPDATE" | "REVOKE" | "BURN";
+    action: "MINT" | "UPDATE";
     txHash: string;
     assetName: string;
     profileId: number;
     name?: string;
     description?: string;
     image?: string;
+    certificate?: string;
     standard?: string;
     properties?: object;
     metadata?: object;
@@ -290,7 +350,11 @@ export class ProductService {
     return this.warehouse.addToWarehouse(profileId, batchId);
   }
 
-  async submitSignedTx(signedTxInput: string, fromBase64 = false): Promise<{ txHash: string }> {
+  async submitSignedTx(
+    signedTxInput: string,
+    fromBase64: boolean,
+    deleteBatchOnSuccess?: { assetName: string; action: "burn222" | "burnRef100" }
+  ): Promise<{ txHash: string }> {
     let cborBuffer: Buffer;
     if (fromBase64) {
       try {
@@ -338,6 +402,12 @@ export class ProductService {
       );
     }
     const txHash = await this.cardano.blockfrostFetcher.submitTx(cborBuffer);
+    if (deleteBatchOnSuccess?.assetName?.trim()) {
+      try {
+        await this.productRepository.deleteBatch(deleteBatchOnSuccess.assetName.trim());
+    } catch {
+    }
+    }
     return { txHash };
   }
 }

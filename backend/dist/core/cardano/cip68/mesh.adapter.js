@@ -119,19 +119,14 @@ class MeshAdapter {
         this.stakeCredentialHash = (0, core_1.deserializeAddress)(changeAddress).stakeCredentialHash;
         this.mintCompileCode = this.readValidator(plutus, t.mint);
         this.storeCompileCode = this.readValidator(plutus, t.store);
-        this.storeScriptCbor = (0, core_1.applyParamsToScript)(this.storeCompileCode, [
-            this.pubKeyIssuer,
-        ]);
+        const ownerAddress = (0, core_1.mPubKeyAddress)(this.pubKeyIssuer, this.stakeCredentialHash);
+        this.storeScriptCbor = (0, core_1.applyParamsToScript)(this.storeCompileCode, [[ownerAddress]], "Mesh");
         this.storeScript = { code: this.storeScriptCbor, version: "V3" };
         const storeScriptAddress = (0, core_1.serializePlutusScript)(this.storeScript, undefined, networkId, false).address;
-        const storeScriptHash = (0, core_1.deserializeAddress)(storeScriptAddress).scriptHash;
-        this.storeAddress = (0, core_1.serializeAddressObj)((0, core_1.scriptAddress)(storeScriptHash, this.stakeCredentialHash, false), networkId);
-        this.storeScriptHash = (0, core_1.deserializeAddress)(this.storeAddress).scriptHash;
-        this.mintScriptCbor = (0, core_1.applyParamsToScript)(this.mintCompileCode, [
-            this.storeScriptHash,
-            this.stakeCredentialHash,
-            this.pubKeyIssuer,
-        ]);
+        this.storeScriptHash = (0, core_1.deserializeAddress)(storeScriptAddress).scriptHash;
+        this.storeAddress = (0, core_1.serializeAddressObj)((0, core_1.scriptAddress)(this.storeScriptHash, this.stakeCredentialHash, false), networkId);
+        const storeAddressForMint = (0, core_1.mPubKeyAddress)(this.storeScriptHash, this.stakeCredentialHash);
+        this.mintScriptCbor = (0, core_1.applyParamsToScript)(this.mintCompileCode, [[ownerAddress], storeAddressForMint], "Mesh");
         this.mintScript = { code: this.mintScriptCbor, version: "V3" };
         this.policyId = (0, core_1.resolveScriptHash)(this.mintScriptCbor, "V3");
     }

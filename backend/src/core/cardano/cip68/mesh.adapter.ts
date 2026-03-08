@@ -3,6 +3,7 @@ import {
   deserializeAddress,
   MeshTxBuilder,
   MeshWallet,
+  mPubKeyAddress,
   resolveScriptHash,
   scriptAddress,
   serializeAddressObj,
@@ -114,9 +115,12 @@ export class MeshAdapter {
     this.stakeCredentialHash = deserializeAddress(changeAddress).stakeCredentialHash;
     this.mintCompileCode = this.readValidator(plutus, t.mint);
     this.storeCompileCode = this.readValidator(plutus, t.store);
-    this.storeScriptCbor = applyParamsToScript(this.storeCompileCode, [
-      this.pubKeyIssuer!,
-    ]);
+    const ownerAddress = mPubKeyAddress(this.pubKeyIssuer!, this.stakeCredentialHash!);
+    this.storeScriptCbor = applyParamsToScript(
+      this.storeCompileCode,
+      [[ownerAddress]],
+      "Mesh"
+    );
     this.storeScript = { code: this.storeScriptCbor, version: "V3" };
     const storeScriptAddress = serializePlutusScript(
       this.storeScript,
@@ -124,17 +128,20 @@ export class MeshAdapter {
       networkId,
       false
     ).address;
-    const storeScriptHash = deserializeAddress(storeScriptAddress).scriptHash;
+    this.storeScriptHash = deserializeAddress(storeScriptAddress).scriptHash;
     this.storeAddress = serializeAddressObj(
-      scriptAddress(storeScriptHash, this.stakeCredentialHash!, false),
+      scriptAddress(this.storeScriptHash, this.stakeCredentialHash!, false),
       networkId
     );
-    this.storeScriptHash = deserializeAddress(this.storeAddress!).scriptHash;
-    this.mintScriptCbor = applyParamsToScript(this.mintCompileCode!, [
+    const storeAddressForMint = mPubKeyAddress(
       this.storeScriptHash!,
-      this.stakeCredentialHash!,
-      this.pubKeyIssuer!,
-    ]);
+      this.stakeCredentialHash!
+    );
+    this.mintScriptCbor = applyParamsToScript(
+      this.mintCompileCode!,
+      [[ownerAddress], storeAddressForMint],
+      "Mesh"
+    );
     this.mintScript = { code: this.mintScriptCbor, version: "V3" };
     this.policyId = resolveScriptHash(this.mintScriptCbor, "V3");
   }

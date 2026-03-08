@@ -21,3 +21,26 @@ export const ROUTE_POLYLINE_OPTIONS = {
   opacity: 0.8,
   color: '#c41e3a',
 } as const;
+
+/** Segment already passed by NFT (on-chain). */
+export const ROUTE_POLYLINE_PASSED = {
+  weight: 3,
+  opacity: 0.9,
+  color: '#16a34a',
+} as const;
+
+/** Segment not yet passed. */
+export const ROUTE_POLYLINE_NOT_PASSED = {
+  weight: 3,
+  opacity: 0.6,
+  color: '#9ca3af',
+  dashArray: '8, 8',
+} as const;
+
+/** Segment in transit (NFT locked in script, chưa unlock). */
+export const ROUTE_POLYLINE_IN_TRANSIT = {
+  weight: 3,
+  opacity: 0.9,
+  color: '#6366f1',
+  dashArray: '10, 10',
+} as const;

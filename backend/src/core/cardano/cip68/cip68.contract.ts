@@ -4,7 +4,6 @@ import {
   CIP68_100,
   metadataToCip68,
   mConStr1,
-  mConStr2,
   deserializeAddress,
 } from "@meshsdk/core";
 import { isEmpty, isNil } from "lodash";
@@ -126,7 +125,48 @@ export class Cip68Contract extends MeshAdapter {
     return await unsignedTx.complete();
   };
 
-  burn = async (
+  burnRef100 = async (params: { assetName: string; txHash?: string }[]) => {
+    const { utxos, walletAddress, collateral } = await this.getWalletForTx();
+    const unsignedTx = this.meshTxBuilder;
+    for (const { assetName, txHash } of params) {
+      const storeUtxo = !isNil(txHash)
+        ? await this.getUtxoForTx(this.storeAddress!, txHash!)
+        : await this.getAddressUTXOAsset(
+            this.storeAddress!,
+            this.policyId! + CIP68_100(stringToHex(assetName))
+          );
+      if (!storeUtxo)
+        throw new Error(`Store UTXO not found for ${assetName}`);
+      unsignedTx
+        .spendingPlutusScriptV3()
+        .txIn(storeUtxo.input.txHash, storeUtxo.input.outputIndex)
+        .txInInlineDatumPresent()
+        .txInRedeemerValue(mConStr1([]))
+        .txInScript(this.storeScriptCbor!)
+        .mintPlutusScriptV3()
+        .mint("-1", this.policyId!, CIP68_100(stringToHex(assetName)))
+        .mintRedeemerValue(mConStr1([]))
+        .mintingScript(this.mintScriptCbor!);
+    }
+    unsignedTx
+      .requiredSignerHash(deserializeAddress(walletAddress).pubKeyHash)
+      .changeAddress(walletAddress)
+      .selectUtxosFrom(utxos, "largestFirst", "7500000", true)
+      .txInCollateral(
+        collateral.input.txHash,
+        collateral.input.outputIndex,
+        collateral.output.amount,
+        collateral.output.address
+      )
+      .setNetwork(this.appNetwork);
+    return await unsignedTx.complete();
+  };
+
+  revoke = async (params: { assetName: string; txHash?: string }[]) => {
+    return this.burnRef100(params);
+  };
+
+  burn222 = async (
     params: {
       assetName: string;
       quantity: string;
@@ -224,10 +264,9 @@ export class Cip68Contract extends MeshAdapter {
         const burnQuantity = q > 0 ? -q : q;
         const burnQuantityStr = String(burnQuantity);
 
-        unsignedTx.readOnlyTxInReference(
-          storeUtxo.input.txHash,
-          storeUtxo.input.outputIndex
-        );
+        for (const u of userUtxos) {
+          unsignedTx.txIn(u.input.txHash, u.input.outputIndex);
+        }
         unsignedTx
           .mintPlutusScriptV3()
           .mint(
@@ -251,6 +290,17 @@ export class Cip68Contract extends MeshAdapter {
       )
       .setNetwork(this.appNetwork);
     return await unsignedTx.complete();
+  };
+
+  burn = async (
+    params: {
+      assetName: string;
+      quantity: string;
+      txHash?: string;
+      policyId?: string;
+    }[]
+  ) => {
+    return this.burn222(params);
   };
 
   update = async (
@@ -289,44 +339,7 @@ export class Cip68Contract extends MeshAdapter {
     unsignedTx
       .requiredSignerHash(deserializeAddress(walletAddress).pubKeyHash)
       .changeAddress(walletAddress)
-      .selectUtxosFrom(utxos, "largestFirst", "7500000", true)
-      .txInCollateral(
-        collateral.input.txHash,
-        collateral.input.outputIndex,
-        collateral.output.amount,
-        collateral.output.address
-      )
-      .setNetwork(this.appNetwork);
-    return await unsignedTx.complete();
-  };
-
-  revoke = async (params: { assetName: string; txHash?: string }[]) => {
-    const { utxos, walletAddress, collateral } = await this.getWalletForTx();
-    const unsignedTx = this.meshTxBuilder;
-    for (const { assetName, txHash } of params) {
-      const storeUtxo = !isNil(txHash)
-        ? await this.getUtxoForTx(this.storeAddress!, txHash!)
-        : await this.getAddressUTXOAsset(
-            this.storeAddress!,
-            this.policyId! + CIP68_100(stringToHex(assetName))
-          );
-      if (!storeUtxo)
-        throw new Error(`Store UTXO not found for ${assetName}`);
-      unsignedTx
-        .spendingPlutusScriptV3()
-        .txIn(storeUtxo.input.txHash, storeUtxo.input.outputIndex)
-        .txInInlineDatumPresent()
-        .txInRedeemerValue(mConStr1([]))
-        .txInScript(this.storeScriptCbor!)
-        .mintPlutusScriptV3()
-        .mint("-1", this.policyId!, CIP68_100(stringToHex(assetName)))
-        .mintRedeemerValue(mConStr2([]))
-        .mintingScript(this.mintScriptCbor!);
-    }
-    unsignedTx
-      .requiredSignerHash(deserializeAddress(walletAddress).pubKeyHash)
-      .changeAddress(walletAddress)
-      .selectUtxosFrom(utxos, "largestFirst", "7500000", true)
+      .selectUtxosFrom(utxos, "largestFirst", "12000000", true)
       .txInCollateral(
         collateral.input.txHash,
         collateral.input.outputIndex,

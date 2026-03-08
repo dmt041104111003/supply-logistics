@@ -17,7 +17,6 @@ const prisma_warehouse_repository_1 = require("./infra/prisma-warehouse.reposito
 const list_my_inventory_use_case_1 = require("./application/use-cases/list-my-inventory.use-case");
 const remove_item_use_case_1 = require("./application/use-cases/remove-item.use-case");
 const mark_shipped_use_case_1 = require("./application/use-cases/mark-shipped.use-case");
-const mark_burned_use_case_1 = require("./application/use-cases/mark-burned.use-case");
 const add_to_warehouse_use_case_1 = require("./application/use-cases/add-to-warehouse.use-case");
 const get_recipient_by_roadmap_use_case_1 = require("./application/use-cases/get-recipient-by-roadmap.use-case");
 let WarehouseModule = class WarehouseModule {
@@ -36,7 +35,6 @@ exports.WarehouseModule = WarehouseModule = __decorate([
             list_my_inventory_use_case_1.ListMyInventoryUseCase,
             remove_item_use_case_1.RemoveItemUseCase,
             mark_shipped_use_case_1.MarkShippedUseCase,
-            mark_burned_use_case_1.MarkBurnedUseCase,
             add_to_warehouse_use_case_1.AddToWarehouseUseCase,
             get_recipient_by_roadmap_use_case_1.GetRecipientByRoadmapUseCase,
         ],

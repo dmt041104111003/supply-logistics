@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { CardanoModule } from "../core/cardano/cardano.module";
+import { ConfigModule } from "../core/config/config.module";
 import { AuthModule } from "../auth/auth.module";
 import { WarehouseModule } from "../warehouse/warehouse.module";
 import { ProductService } from "./product.service";
@@ -11,7 +12,7 @@ import { RecordProductTxUseCase } from "./application/use-cases/record-product-t
 import { ListRoadmapUseCase } from "./application/use-cases/list-roadmap.use-case";
 
 @Module({
-  imports: [CardanoModule, AuthModule, WarehouseModule],
+  imports: [CardanoModule, ConfigModule, AuthModule, WarehouseModule],
   controllers: [ProductController],
   providers: [
     ProductService,

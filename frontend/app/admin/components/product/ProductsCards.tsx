@@ -17,10 +17,6 @@ export function ProductsCards({ styles, items, onDetail, onEdit, onRevoke, onDow
         items.map((p) => (
         <div key={p.id} className={styles.tableCard}>
           <div className={styles.tableCardRow}>
-            <span className={styles.tableCardLabel}>ID</span>
-            <span className={styles.tableCardValue}>{p.id}</span>
-          </div>
-          <div className={styles.tableCardRow}>
             <span className={styles.tableCardLabel}>Batch ID</span>
             <span className={styles.tableCardValue} title={p.code}>
               {truncate(p.code, 18)}
@@ -59,7 +55,9 @@ export function ProductsCards({ styles, items, onDetail, onEdit, onRevoke, onDow
               <button
                 type="button"
                 className={styles.btnSecondary}
-                onClick={() => onEdit(p)}
+                onClick={() => p.canUpdate !== false && onEdit(p)}
+                disabled={p.canUpdate === false}
+                title={p.canUpdate === false ? 'Cannot edit: NFT already sent' : 'Edit'}
               >
                 Edit
               </button>
@@ -85,4 +83,3 @@ export function ProductsCards({ styles, items, onDetail, onEdit, onRevoke, onDow
     </div>
   );
 }
-

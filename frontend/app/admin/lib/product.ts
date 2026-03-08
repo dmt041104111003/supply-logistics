@@ -37,20 +37,6 @@ export async function getBatchesList(token: string): Promise<BatchListItem[]> {
     : [];
 }
 
-export async function getNextHopIndex(
-  assetName: string,
-  address: string,
-): Promise<{ hopIndex: number; recipientAddress: string | null }> {
-  const res = await fetch(
-    `${BACKEND_URL}/product/roadmap/next-hop?assetName=${encodeURIComponent(assetName.trim())}&address=${encodeURIComponent(address.trim())}`,
-  );
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data?.message || data?.error || 'Failed to get hop index');
-  }
-  return { hopIndex: data?.hopIndex ?? 0, recipientAddress: data?.recipientAddress ?? null };
-}
-
 export async function getBatchByAssetName(assetName: string): Promise<{
   policyId: string | null;
   assetName: string;
@@ -68,6 +54,30 @@ export async function getBatchByAssetName(assetName: string): Promise<{
     policyId: data.policyId ?? null,
     assetName: data.assetName ?? assetName,
     nftUnit: data.nftUnit ?? null,
+  };
+}
+
+export type QrPayload = {
+  policyId: string;
+  assetName: string;
+  minter: string | null;
+  owners: string[];
+};
+
+export async function getBatchQrPayload(assetName: string): Promise<QrPayload | null> {
+  const res = await fetch(
+    `${BACKEND_URL}/product/batch/${encodeURIComponent(assetName.trim())}/qr-payload`,
+  );
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.message || data?.error || 'Failed to get QR payload');
+  }
+  if (data == null) return null;
+  return {
+    policyId: String(data.policyId ?? ''),
+    assetName: String(data.assetName ?? assetName),
+    minter: data.minter != null ? String(data.minter) : null,
+    owners: Array.isArray(data.owners) ? data.owners.map((a: unknown) => String(a)) : [],
   };
 }
 

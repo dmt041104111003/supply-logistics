@@ -51,17 +51,6 @@ let PrismaWarehouseRepository = class PrismaWarehouseRepository {
             data: { status: "ON_WAY", shippedAt: new Date(), lastMovedAt: new Date() },
         });
     }
-    async markAsBurnedForProfile(profileId, batchId, burnTxHash) {
-        await this.prisma.warehouseInventory.updateMany({
-            where: { batchId, profileId },
-            data: {
-                status: "CONSUMED",
-                consumedAt: new Date(),
-                burnTxHash: burnTxHash !== null && burnTxHash !== void 0 ? burnTxHash : null,
-                lastMovedAt: new Date(),
-            },
-        });
-    }
     async addToWarehouseForProfile(profileId, batchId) {
         await this.prisma.warehouseInventory.upsert({
             where: { batchId_profileId: { batchId, profileId } },

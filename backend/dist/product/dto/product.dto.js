@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SubmitTxDto = exports.RemoveWarehouseItemDto = exports.BurnConfirmDto = exports.RevokeConfirmDto = exports.UpdateConfirmDto = exports.MintConfirmDto = exports.BurnProductDto = exports.RevokeProductDto = exports.UpdateProductDto = exports.MintProductDto = void 0;
+exports.SubmitTxDto = exports.RemoveWarehouseItemDto = exports.UpdateConfirmDto = exports.MintConfirmDto = exports.BurnProductDto = exports.RevokeProductDto = exports.UpdateProductDto = exports.MintProductDto = void 0;
 class MintProductDto {
 }
 exports.MintProductDto = MintProductDto;
@@ -19,12 +19,6 @@ exports.MintConfirmDto = MintConfirmDto;
 class UpdateConfirmDto {
 }
 exports.UpdateConfirmDto = UpdateConfirmDto;
-class RevokeConfirmDto {
-}
-exports.RevokeConfirmDto = RevokeConfirmDto;
-class BurnConfirmDto {
-}
-exports.BurnConfirmDto = BurnConfirmDto;
 class RemoveWarehouseItemDto {
 }
 exports.RemoveWarehouseItemDto = RemoveWarehouseItemDto;

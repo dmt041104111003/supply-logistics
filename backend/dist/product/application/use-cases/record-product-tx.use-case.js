@@ -49,19 +49,20 @@ let RecordProductTxUseCase = class RecordProductTxUseCase {
                 name,
                 description: description || null,
                 image: image || null,
-                standard: (_g = params.standard) !== null && _g !== void 0 ? _g : "Traceability-v1",
+                certificate: (_g = params.certificate) !== null && _g !== void 0 ? _g : null,
+                standard: (_h = params.standard) !== null && _h !== void 0 ? _h : "Traceability-v1",
                 mintTxHash: txHash,
                 policyId: params.policyId,
                 minterProfileId: profileId,
                 expiryDate,
-                sku: (_h = master.sku) !== null && _h !== void 0 ? _h : null,
+                sku: (_j = master.sku) !== null && _j !== void 0 ? _j : null,
                 grossWeightKg: master.grossWeightKg != null ? Number(master.grossWeightKg) : null,
                 netWeightKg: master.netWeightKg != null ? Number(master.netWeightKg) : null,
-                originSiteCode: (_j = minterProfile === null || minterProfile === void 0 ? void 0 : minterProfile.location) !== null && _j !== void 0 ? _j : null,
+                originSiteCode: (_k = minterProfile === null || minterProfile === void 0 ? void 0 : minterProfile.location) !== null && _k !== void 0 ? _k : null,
                 referenceUtxo: `${txHash}#0`,
             };
             await this.repository.upsertBatchOnMint(mintParams);
-            const receivers = (_k = params.receivers) !== null && _k !== void 0 ? _k : [];
+            const receivers = (_l = params.receivers) !== null && _l !== void 0 ? _l : [];
             if (receivers.length > 0) {
                 const profile = minterProfile;
                 const senderAddress = (profile === null || profile === void 0 ? void 0 : profile.walletAddress) && typeof profile.walletAddress === "string"
@@ -77,8 +78,8 @@ let RecordProductTxUseCase = class RecordProductTxUseCase {
             throw new common_1.BadRequestException(`Batch not found: ${assetName}`);
         }
         if (action === "UPDATE") {
-            let nextExpiryDate = (_l = batch.expiryDate) !== null && _l !== void 0 ? _l : null;
-            const baseProps = (_m = params.properties) !== null && _m !== void 0 ? _m : {};
+            let nextExpiryDate = (_m = batch.expiryDate) !== null && _m !== void 0 ? _m : null;
+            const baseProps = (_o = params.properties) !== null && _o !== void 0 ? _o : {};
             const rawNextExpiry = baseProps === null || baseProps === void 0 ? void 0 : baseProps.ngayHetHan;
             if (rawNextExpiry) {
                 const d = rawNextExpiry instanceof Date
@@ -97,24 +98,25 @@ let RecordProductTxUseCase = class RecordProductTxUseCase {
             });
             await this.repository.updateBatch({
                 batchId: assetName,
-                name: (_o = params.name) !== null && _o !== void 0 ? _o : batch.name,
+                name: (_p = params.name) !== null && _p !== void 0 ? _p : batch.name,
                 description: nextDescription,
-                image: (_p = params.image) !== null && _p !== void 0 ? _p : batch.image,
-                standard: (_q = params.standard) !== null && _q !== void 0 ? _q : batch.standard,
+                image: (_q = params.image) !== null && _q !== void 0 ? _q : batch.image,
+                certificate: params.certificate !== undefined ? params.certificate : batch.certificate,
+                standard: (_r = params.standard) !== null && _r !== void 0 ? _r : batch.standard,
                 expiryDate: nextExpiryDate !== null && nextExpiryDate !== void 0 ? nextExpiryDate : null,
                 lastUpdateTxHash: txHash,
                 lastUpdateAt: new Date().toISOString(),
-                sku: (_s = (_r = baseProps.sku) !== null && _r !== void 0 ? _r : batch.sku) !== null && _s !== void 0 ? _s : null,
+                sku: (_t = (_s = baseProps.sku) !== null && _s !== void 0 ? _s : batch.sku) !== null && _t !== void 0 ? _t : null,
                 grossWeightKg: baseProps.grossWeightKg != null
                     ? Number(baseProps.grossWeightKg)
-                    : (_t = batch.grossWeightKg) !== null && _t !== void 0 ? _t : null,
+                    : (_u = batch.grossWeightKg) !== null && _u !== void 0 ? _u : null,
                 netWeightKg: baseProps.netWeightKg != null
                     ? Number(baseProps.netWeightKg)
-                    : (_u = batch.netWeightKg) !== null && _u !== void 0 ? _u : null,
-                originSiteCode: (_w = (_v = updaterProfile === null || updaterProfile === void 0 ? void 0 : updaterProfile.location) !== null && _v !== void 0 ? _v : batch.originSiteCode) !== null && _w !== void 0 ? _w : null,
+                    : (_v = batch.netWeightKg) !== null && _v !== void 0 ? _v : null,
+                originSiteCode: (_x = (_w = updaterProfile === null || updaterProfile === void 0 ? void 0 : updaterProfile.location) !== null && _w !== void 0 ? _w : batch.originSiteCode) !== null && _x !== void 0 ? _x : null,
                 referenceUtxo: `${txHash}#0`,
             });
-            const receivers = (_x = params.receivers) !== null && _x !== void 0 ? _x : [];
+            const receivers = (_y = params.receivers) !== null && _y !== void 0 ? _y : [];
             if (receivers.length > 0) {
                 const profile = updaterProfile;
                 const senderAddress = (profile === null || profile === void 0 ? void 0 : profile.walletAddress) && typeof profile.walletAddress === "string"
@@ -122,26 +124,6 @@ let RecordProductTxUseCase = class RecordProductTxUseCase {
                     : "";
                 await this.repository.createRoadmaps(assetName, "UPDATE", senderAddress, receivers, txHash);
             }
-            return;
-        }
-        if (action === "REVOKE") {
-            await this.repository.markBatchRevoked(assetName);
-            const receivers = (_y = params.receivers) !== null && _y !== void 0 ? _y : [];
-            if (receivers.length > 0) {
-                const profile = await this.prisma.profile.findUnique({
-                    where: { id: profileId },
-                    select: { walletAddress: true },
-                });
-                const senderAddress = (profile === null || profile === void 0 ? void 0 : profile.walletAddress) && typeof profile.walletAddress === "string"
-                    ? profile.walletAddress.trim()
-                    : "";
-                await this.repository.createRoadmaps(assetName, "REVOKE", senderAddress, receivers, txHash);
-            }
-            return;
-        }
-        if (action === "BURN") {
-            await this.repository.markBatchBurned(assetName, txHash);
-            await this.warehouse.markAsBurned(profileId, assetName);
             return;
         }
     }

@@ -11,6 +11,7 @@ export class MintProductDto {
   minterLocation?: string;
   minterCoordinates?: string;
   propertiesJson?: string;
+  certificate?: string;
   certUnit?: string;
   walletUtxos?: unknown[];
   utxoAddresses?: string[];
@@ -29,6 +30,7 @@ export class UpdateProductDto {
   minterLocation?: string;
   minterCoordinates?: string;
   propertiesJson?: string;
+  certificate?: string;
   certUnit?: string;
   walletUtxos?: unknown[];
   utxoAddresses?: string[];
@@ -57,6 +59,7 @@ export class MintConfirmDto {
   name!: string;
   image!: string;
   description?: string;
+  certificate?: string;
   minterProfileId!: number;
   standard?: string;
   properties?: object;
@@ -72,23 +75,11 @@ export class UpdateConfirmDto {
   name?: string;
   description?: string;
   image?: string;
+  certificate?: string;
   standard?: string;
   properties?: object;
   metadata?: object;
   receivers?: string[];
-}
-
-export class RevokeConfirmDto {
-  txHash!: string;
-  assetName!: string;
-  profileId!: number;
-  receivers?: string[];
-}
-
-export class BurnConfirmDto {
-  txHash!: string;
-  assetName!: string;
-  profileId!: number;
 }
 
 export class RemoveWarehouseItemDto {
@@ -98,4 +89,8 @@ export class RemoveWarehouseItemDto {
 export class SubmitTxDto {
   signedTx?: string;
   signedTxBase64?: string;
+  deleteBatchOnSuccess?: {
+    assetName: string;
+    action: "burn222" | "burnRef100";
+  };
 }

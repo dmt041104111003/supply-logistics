@@ -164,7 +164,10 @@ export async function getWalletChangeAddress(): Promise<string> {
   return normalizeWalletAddress(raw, networkId);
 }
 
-export async function signAndSubmitWithEternl(unsignedTx: string): Promise<string> {
+export async function signAndSubmitWithEternl(
+  unsignedTx: string,
+  opts?: { deleteBatchOnSuccess?: { assetName: string; action: 'burn222' | 'burnRef100' } },
+): Promise<string> {
   const wallet = await getMeshWallet();
   if (wallet && typeof wallet.signTx === 'function' && typeof wallet.submitTx === 'function') {
     const signedTx = await (wallet as any).signTx(unsignedTx, true);
@@ -217,7 +220,12 @@ export async function signAndSubmitWithEternl(unsignedTx: string): Promise<strin
   const res = await fetch(`${backendUrl}/product/submit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ signedTxBase64 }),
+    body: JSON.stringify({
+      signedTxBase64,
+      ...(opts?.deleteBatchOnSuccess && {
+        deleteBatchOnSuccess: opts.deleteBatchOnSuccess,
+      }),
+    }),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -312,7 +320,10 @@ export async function signTxPartialForCosign(partialTxHex: string): Promise<stri
   return result;
 }
 
-export async function submitSignedTxHex(signedTxHex: string): Promise<string> {
+export async function submitSignedTxHex(
+  signedTxHex: string,
+  opts?: { deleteBatchOnSuccess?: { assetName: string; action: 'burn222' | 'burnRef100' } },
+): Promise<string> {
   const wallet = await getMeshWallet();
   if (wallet && typeof (wallet as any).submitTx === 'function') {
     const txHash = await (wallet as any).submitTx(signedTxHex);
@@ -340,7 +351,12 @@ export async function submitSignedTxHex(signedTxHex: string): Promise<string> {
   const res = await fetch(`${backendUrl}/product/submit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ signedTxBase64 }),
+    body: JSON.stringify({
+      signedTxBase64,
+      ...(opts?.deleteBatchOnSuccess && {
+        deleteBatchOnSuccess: opts.deleteBatchOnSuccess,
+      }),
+    }),
   });
   const data = await res.json();
   if (!res.ok) {

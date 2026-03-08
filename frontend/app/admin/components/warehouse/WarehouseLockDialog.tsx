@@ -138,7 +138,6 @@ export function WarehouseLockDialog({ open, item, onClose, onSuccess }: Props) {
           ownerAddresses: ownerLines,
         });
       } catch {
-        // optional
       }
       const token = getAuthToken();
       if (token) {
@@ -149,7 +148,6 @@ export function WarehouseLockDialog({ open, item, onClose, onSuccess }: Props) {
             body: JSON.stringify({ batchId: item.batchId.trim() }),
           });
         } catch {
-          // optional
         }
       }
       onSuccess();

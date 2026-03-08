@@ -16,7 +16,6 @@ const auth_module_1 = require("./auth/auth.module");
 const profile_module_1 = require("./profile/profile.module");
 const order_module_1 = require("./order/order.module");
 const warehouse_module_1 = require("./warehouse/warehouse.module");
-const certificate_module_1 = require("./certificate/certificate.module");
 const ipfs_module_1 = require("./ipfs/ipfs.module");
 const upload_module_1 = require("./upload/upload.module");
 const trace_module_1 = require("./trace/trace.module");
@@ -35,7 +34,6 @@ exports.AppModule = AppModule = __decorate([
             profile_module_1.ProfileModule,
             order_module_1.OrderModule,
             warehouse_module_1.WarehouseModule,
-            certificate_module_1.CertificateModule,
             ipfs_module_1.IpfsModule,
             upload_module_1.UploadModule,
             trace_module_1.TraceModule,

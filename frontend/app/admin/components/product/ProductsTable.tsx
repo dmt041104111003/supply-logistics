@@ -16,7 +16,6 @@ export function ProductsTable({ styles, items, onDetail, onEdit, onRevoke, onDow
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>ID</th>
             <th>Batch ID</th>
             <th>Name</th>
             <th>Download</th>
@@ -26,14 +25,13 @@ export function ProductsTable({ styles, items, onDetail, onEdit, onRevoke, onDow
         <tbody>
           {items.length === 0 ? (
             <tr>
-              <td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: '1.5rem' }}>
+              <td colSpan={4} style={{ textAlign: 'center', color: '#6b7280', padding: '1.5rem' }}>
                 No data
               </td>
             </tr>
           ) : (
             items.map((p) => (
             <tr key={p.id}>
-              <td>{p.id}</td>
               <td title={p.code}>
                 <code style={{ fontSize: '0.8125rem' }} className={styles.cellTruncate}>
                   {truncate(p.code, 18)}
@@ -67,7 +65,9 @@ export function ProductsTable({ styles, items, onDetail, onEdit, onRevoke, onDow
                   <button
                     type="button"
                     className={styles.btnSecondary}
-                    onClick={() => onEdit(p)}
+                    onClick={() => p.canUpdate !== false && onEdit(p)}
+                    disabled={p.canUpdate === false}
+                    title={p.canUpdate === false ? 'Cannot edit: NFT already sent' : 'Edit'}
                   >
                     Edit
                   </button>
@@ -88,4 +88,3 @@ export function ProductsTable({ styles, items, onDetail, onEdit, onRevoke, onDow
     </div>
   );
 }
-

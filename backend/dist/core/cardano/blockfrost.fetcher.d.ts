@@ -1,5 +1,9 @@
 import type { Asset } from "@meshsdk/core";
 import type { Transaction, UtXO } from "../../shared/types";
+export declare class BlockfrostNotFoundError extends Error {
+    readonly statusCode = 404;
+    constructor(message?: string);
+}
 export type BlockfrostFetcherDeps = {
     buildRef100Unit: (policyId: string, assetName: string) => string;
     parseHttpError: (error: unknown) => string;
@@ -23,6 +27,11 @@ export declare class BlockfrostFetcher {
     fetchAssetTransactions(asset: string): Promise<unknown>;
     fetchAllAssetTransactions(asset: string): Promise<Array<{
         tx_hash: string;
+    }>>;
+    fetchAllAssetTransactionsWithBlockTime(asset: string): Promise<Array<{
+        tx_hash: string;
+        block_height?: number;
+        block_time?: number;
     }>>;
     fetchAssetsByPolicy(policyId: string): Promise<Array<{
         asset: string;

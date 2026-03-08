@@ -4,6 +4,7 @@ export interface ProductBatchListItem {
     name: string;
     description: string | null;
     image: string | null;
+    certificate: string | null;
     createdAt: Date;
     policyId: string | null;
     sku: string | null;
@@ -16,6 +17,7 @@ export interface ProductBatchSnapshot {
     name: string;
     description: string | null;
     image: string | null;
+    certificate: string | null;
     standard: string | null;
     policyId: string | null;
     expiryDate: Date | null;
@@ -43,6 +45,7 @@ export interface MintBatchParams {
     name: string;
     description: string | null;
     image: string | null;
+    certificate?: string | null;
     standard: string;
     mintTxHash: string;
     policyId?: string;
@@ -59,6 +62,7 @@ export interface UpdateBatchParams {
     name?: string;
     description?: string | null;
     image?: string | null;
+    certificate?: string | null;
     standard?: string | null;
     expiryDate?: Date | string | null;
     lastUpdateTxHash?: string | null;
@@ -80,8 +84,7 @@ export interface ProductRepositoryPort {
     findBatchByCode(batchId: string): Promise<ProductBatchSnapshot | null>;
     getMinterWalletAddressByBatchCode(batchId: string): Promise<string | null>;
     updateBatch(params: UpdateBatchParams): Promise<void>;
-    markBatchRevoked(batchId: string): Promise<void>;
-    markBatchBurned(batchId: string, burnTxHash: string): Promise<void>;
+    deleteBatch(batchId: string): Promise<void>;
     createRoadmaps(batchId: string, action: "MINT" | "UPDATE" | "REVOKE", fromAddress: string, receivers: string[], txHash: string): Promise<void>;
     listRoadmap(batchId: string): Promise<ProductRoadmapHop[]>;
 }

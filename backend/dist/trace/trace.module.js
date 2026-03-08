@@ -13,16 +13,16 @@ const trace_service_1 = require("./trace.service");
 const order_module_1 = require("../order/order.module");
 const config_module_1 = require("../core/config/config.module");
 const cardano_module_1 = require("../core/cardano/cardano.module");
-const prisma_module_1 = require("../prisma/prisma.module");
 const trace_asset_use_case_1 = require("./application/use-cases/trace-asset.use-case");
+const trace_history_use_case_1 = require("./application/use-cases/trace-history.use-case");
 let TraceModule = class TraceModule {
 };
 exports.TraceModule = TraceModule;
 exports.TraceModule = TraceModule = __decorate([
     (0, common_1.Module)({
-        imports: [config_module_1.ConfigModule, cardano_module_1.CardanoModule, prisma_module_1.PrismaModule, order_module_1.OrderModule],
+        imports: [config_module_1.ConfigModule, cardano_module_1.CardanoModule, order_module_1.OrderModule],
         controllers: [trace_controller_1.TraceController],
-        providers: [trace_service_1.TraceService, trace_asset_use_case_1.TraceAssetUseCase],
+        providers: [trace_service_1.TraceService, trace_asset_use_case_1.TraceAssetUseCase, trace_history_use_case_1.TraceHistoryUseCase],
     })
 ], TraceModule);
 //# sourceMappingURL=trace.module.js.map

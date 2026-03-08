@@ -10,7 +10,6 @@ import { readAccountFromToken, getAuthToken } from '../../lib/account';
 import {
   getWarehouseItems,
   requestBurnNft,
-  confirmBurnNft,
   type WarehouseItem,
 } from '../../lib/warehouse';
 import { getWalletChangeAddress, getWalletUtxos, getWalletUtxoAddresses, signAndSubmitWithEternl } from '../../utils/wallet';
@@ -119,11 +118,8 @@ export default function WarehousePage() {
         utxoAddresses,
         policyId: item.policyId,
       });
-      const txHash = await signAndSubmitWithEternl(unsignedTx);
-      await confirmBurnNft(token, {
-        txHash,
-        assetName: item.batchId,
-        profileId: account.id,
+      const txHash = await signAndSubmitWithEternl(unsignedTx, {
+        deleteBatchOnSuccess: { assetName: item.batchId, action: 'burn222' },
       });
       await loadMyWarehouse();
     } catch (e) {

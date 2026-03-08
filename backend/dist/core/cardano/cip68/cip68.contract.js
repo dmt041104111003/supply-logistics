@@ -69,7 +69,38 @@ class Cip68Contract extends mesh_adapter_1.MeshAdapter {
                 .setNetwork(this.appNetwork);
             return await unsignedTx.complete();
         };
-        this.burn = async (params) => {
+        this.burnRef100 = async (params) => {
+            const { utxos, walletAddress, collateral } = await this.getWalletForTx();
+            const unsignedTx = this.meshTxBuilder;
+            for (const { assetName, txHash } of params) {
+                const storeUtxo = !(0, lodash_1.isNil)(txHash)
+                    ? await this.getUtxoForTx(this.storeAddress, txHash)
+                    : await this.getAddressUTXOAsset(this.storeAddress, this.policyId + (0, core_1.CIP68_100)((0, core_1.stringToHex)(assetName)));
+                if (!storeUtxo)
+                    throw new Error(`Store UTXO not found for ${assetName}`);
+                unsignedTx
+                    .spendingPlutusScriptV3()
+                    .txIn(storeUtxo.input.txHash, storeUtxo.input.outputIndex)
+                    .txInInlineDatumPresent()
+                    .txInRedeemerValue((0, core_1.mConStr1)([]))
+                    .txInScript(this.storeScriptCbor)
+                    .mintPlutusScriptV3()
+                    .mint("-1", this.policyId, (0, core_1.CIP68_100)((0, core_1.stringToHex)(assetName)))
+                    .mintRedeemerValue((0, core_1.mConStr1)([]))
+                    .mintingScript(this.mintScriptCbor);
+            }
+            unsignedTx
+                .requiredSignerHash((0, core_1.deserializeAddress)(walletAddress).pubKeyHash)
+                .changeAddress(walletAddress)
+                .selectUtxosFrom(utxos, "largestFirst", "7500000", true)
+                .txInCollateral(collateral.input.txHash, collateral.input.outputIndex, collateral.output.amount, collateral.output.address)
+                .setNetwork(this.appNetwork);
+            return await unsignedTx.complete();
+        };
+        this.revoke = async (params) => {
+            return this.burnRef100(params);
+        };
+        this.burn222 = async (params) => {
             const { utxos, walletAddress, collateral } = await this.getWalletForTx();
             const unsignedTx = this.meshTxBuilder;
             await Promise.all(params.map(async ({ assetName, quantity, txHash, policyId }) => {
@@ -135,7 +166,9 @@ class Cip68Contract extends mesh_adapter_1.MeshAdapter {
                     : this.mintScriptCbor;
                 const burnQuantity = q > 0 ? -q : q;
                 const burnQuantityStr = String(burnQuantity);
-                unsignedTx.readOnlyTxInReference(storeUtxo.input.txHash, storeUtxo.input.outputIndex);
+                for (const u of userUtxos) {
+                    unsignedTx.txIn(u.input.txHash, u.input.outputIndex);
+                }
                 unsignedTx
                     .mintPlutusScriptV3()
                     .mint(burnQuantityStr, policyIdToUse, CIP68_222((0, core_1.stringToHex)(assetName)))
@@ -149,6 +182,9 @@ class Cip68Contract extends mesh_adapter_1.MeshAdapter {
                 .txInCollateral(collateral.input.txHash, collateral.input.outputIndex, collateral.output.amount, collateral.output.address)
                 .setNetwork(this.appNetwork);
             return await unsignedTx.complete();
+        };
+        this.burn = async (params) => {
+            return this.burn222(params);
         };
         this.update = async (params) => {
             const { utxos, walletAddress, collateral } = await this.getWalletForTx();
@@ -176,35 +212,7 @@ class Cip68Contract extends mesh_adapter_1.MeshAdapter {
             unsignedTx
                 .requiredSignerHash((0, core_1.deserializeAddress)(walletAddress).pubKeyHash)
                 .changeAddress(walletAddress)
-                .selectUtxosFrom(utxos, "largestFirst", "7500000", true)
-                .txInCollateral(collateral.input.txHash, collateral.input.outputIndex, collateral.output.amount, collateral.output.address)
-                .setNetwork(this.appNetwork);
-            return await unsignedTx.complete();
-        };
-        this.revoke = async (params) => {
-            const { utxos, walletAddress, collateral } = await this.getWalletForTx();
-            const unsignedTx = this.meshTxBuilder;
-            for (const { assetName, txHash } of params) {
-                const storeUtxo = !(0, lodash_1.isNil)(txHash)
-                    ? await this.getUtxoForTx(this.storeAddress, txHash)
-                    : await this.getAddressUTXOAsset(this.storeAddress, this.policyId + (0, core_1.CIP68_100)((0, core_1.stringToHex)(assetName)));
-                if (!storeUtxo)
-                    throw new Error(`Store UTXO not found for ${assetName}`);
-                unsignedTx
-                    .spendingPlutusScriptV3()
-                    .txIn(storeUtxo.input.txHash, storeUtxo.input.outputIndex)
-                    .txInInlineDatumPresent()
-                    .txInRedeemerValue((0, core_1.mConStr1)([]))
-                    .txInScript(this.storeScriptCbor)
-                    .mintPlutusScriptV3()
-                    .mint("-1", this.policyId, (0, core_1.CIP68_100)((0, core_1.stringToHex)(assetName)))
-                    .mintRedeemerValue((0, core_1.mConStr2)([]))
-                    .mintingScript(this.mintScriptCbor);
-            }
-            unsignedTx
-                .requiredSignerHash((0, core_1.deserializeAddress)(walletAddress).pubKeyHash)
-                .changeAddress(walletAddress)
-                .selectUtxosFrom(utxos, "largestFirst", "7500000", true)
+                .selectUtxosFrom(utxos, "largestFirst", "12000000", true)
                 .txInCollateral(collateral.input.txHash, collateral.input.outputIndex, collateral.output.amount, collateral.output.address)
                 .setNetwork(this.appNetwork);
             return await unsignedTx.complete();

@@ -1,6 +1,6 @@
 import { ProductService } from "./product.service";
 import { AuthService } from "../auth/auth.service";
-import { MintProductDto, UpdateProductDto, RevokeProductDto, BurnProductDto, MintConfirmDto, UpdateConfirmDto, RevokeConfirmDto, BurnConfirmDto, SubmitTxDto } from "./dto/product.dto";
+import { MintProductDto, UpdateProductDto, RevokeProductDto, BurnProductDto, MintConfirmDto, UpdateConfirmDto, SubmitTxDto } from "./dto/product.dto";
 export declare class ProductController {
     private readonly product;
     private readonly auth;
@@ -13,12 +13,14 @@ export declare class ProductController {
             name: string;
             description: string | null;
             image: string | null;
+            certificate: string | null;
             createdAt: Date;
             policyId: string | null;
             sku: string | null;
             grossWeightKg: number | null;
             netWeightKg: number | null;
             originSiteCode: string | null;
+            canUpdate: boolean;
         }[];
     }>;
     mint(body: MintProductDto, token?: string): Promise<{
@@ -40,12 +42,6 @@ export declare class ProductController {
     updateConfirm(body: UpdateConfirmDto, token?: string): Promise<{
         ok: boolean;
     }>;
-    revokeConfirm(body: RevokeConfirmDto, token?: string): Promise<{
-        ok: boolean;
-    }>;
-    burnConfirm(body: BurnConfirmDto): Promise<{
-        ok: boolean;
-    }>;
     submit(body: SubmitTxDto): Promise<{
         txHash: string;
     }>;
@@ -54,6 +50,12 @@ export declare class ProductController {
             stepIndex: number;
             toAddress: string | null;
         }[];
+    }>;
+    getBatchQrPayload(code: string): Promise<{
+        policyId: string;
+        assetName: string;
+        minter: string | null;
+        owners: string[];
     }>;
     getBatchByCode(code: string): Promise<{
         policyId: string | null;

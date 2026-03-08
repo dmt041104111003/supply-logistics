@@ -7,7 +7,6 @@ import {
 import { ListMyInventoryUseCase } from "./application/use-cases/list-my-inventory.use-case";
 import { RemoveItemUseCase } from "./application/use-cases/remove-item.use-case";
 import { MarkShippedUseCase } from "./application/use-cases/mark-shipped.use-case";
-import { MarkBurnedUseCase } from "./application/use-cases/mark-burned.use-case";
 import { AddToWarehouseUseCase } from "./application/use-cases/add-to-warehouse.use-case";
 import { GetRecipientByRoadmapUseCase } from "./application/use-cases/get-recipient-by-roadmap.use-case";
 
@@ -19,7 +18,6 @@ export class WarehouseService {
     private readonly listMyInventoryUseCase: ListMyInventoryUseCase,
     private readonly removeItemUseCase: RemoveItemUseCase,
     private readonly markShippedUseCase: MarkShippedUseCase,
-    private readonly markBurnedUseCase: MarkBurnedUseCase,
     private readonly addToWarehouseUseCase: AddToWarehouseUseCase,
     private readonly getRecipientByRoadmapUseCase: GetRecipientByRoadmapUseCase
   ) {}
@@ -36,10 +34,6 @@ export class WarehouseService {
 
   async markAsShipped(profileId: number, batchId: string): Promise<void> {
     return this.markShippedUseCase.execute(profileId, batchId);
-  }
-
-  async markAsBurned(profileId: number, batchId: string): Promise<void> {
-    return this.markBurnedUseCase.execute(profileId, batchId);
   }
 
   async addToWarehouse(profileId: number, batchId: string): Promise<void> {

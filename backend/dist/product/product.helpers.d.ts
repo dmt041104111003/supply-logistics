@@ -18,5 +18,8 @@ export type BuildMetadataInput = {
     image: string;
     properties?: string;
     standard?: string;
+    minter_address?: string;
+    receiver_addresses?: string;
+    certificate?: string;
 };
 export declare function buildMetadata(opts: BuildMetadataInput): Record<string, string>;

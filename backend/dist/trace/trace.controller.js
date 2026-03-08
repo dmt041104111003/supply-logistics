@@ -25,13 +25,19 @@ let TraceController = class TraceController {
         if (!((_a = body === null || body === void 0 ? void 0 : body.policyId) === null || _a === void 0 ? void 0 : _a.trim()) || !((_b = body === null || body === void 0 ? void 0 : body.assetName) === null || _b === void 0 ? void 0 : _b.trim())) {
             throw new common_1.BadRequestException("policyId and assetName are required.");
         }
-        return this.traceService.trace(body.policyId.trim(), body.assetName.trim());
+        return this.traceService.trace(body.policyId.trim(), body.assetName.trim(), undefined);
     }
-    async getTrace(policyId, assetName) {
+    async getHistory(policyId, assetName) {
         if (!(policyId === null || policyId === void 0 ? void 0 : policyId.trim()) || !(assetName === null || assetName === void 0 ? void 0 : assetName.trim())) {
             throw new common_1.BadRequestException("policyId and assetName are required.");
         }
-        return this.traceService.trace(policyId.trim(), assetName.trim());
+        return this.traceService.getHistory(policyId.trim(), assetName.trim());
+    }
+    async getTrace(policyId, assetName, atTxHash) {
+        if (!(policyId === null || policyId === void 0 ? void 0 : policyId.trim()) || !(assetName === null || assetName === void 0 ? void 0 : assetName.trim())) {
+            throw new common_1.BadRequestException("policyId and assetName are required.");
+        }
+        return this.traceService.trace(policyId.trim(), assetName.trim(), (atTxHash === null || atTxHash === void 0 ? void 0 : atTxHash.trim()) || undefined);
     }
 };
 exports.TraceController = TraceController;
@@ -43,11 +49,20 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TraceController.prototype, "trace", null);
 __decorate([
-    (0, common_1.Get)(),
+    (0, common_1.Get)("history"),
     __param(0, (0, common_1.Query)("policyId")),
     __param(1, (0, common_1.Query)("assetName")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], TraceController.prototype, "getHistory", null);
+__decorate([
+    (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)("policyId")),
+    __param(1, (0, common_1.Query)("assetName")),
+    __param(2, (0, common_1.Query)("atTxHash")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], TraceController.prototype, "getTrace", null);
 exports.TraceController = TraceController = __decorate([

@@ -122,7 +122,8 @@ export default function AdminLayoutClient({
             {ADMIN_NAV_ITEMS.filter((item) => {
               if (!('roles' in item) || !item.roles) return true;
               if (!role) return false;
-              return (item.roles as readonly string[]).includes(role);
+              const roleUpper = (role as string).toUpperCase();
+              return (item.roles as readonly string[]).some((r) => r.toUpperCase() === roleUpper);
             }).map((item) => (
               <li key={item.href}>
                 <Link

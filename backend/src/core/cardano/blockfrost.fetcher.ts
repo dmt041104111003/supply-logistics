@@ -7,6 +7,14 @@ import type { BlockfrostSupportedNetworks } from "@meshsdk/core";
 import { buildRef100Unit, parseHttpError } from "../../shared/common/utils";
 import { CIP68_PREFIX } from "../config/config.service";
 
+export class BlockfrostNotFoundError extends Error {
+  readonly statusCode = 404;
+  constructor(message = "The requested component has not been found.") {
+    super(message);
+    this.name = "BlockfrostNotFoundError";
+  }
+}
+
 export type BlockfrostFetcherDeps = {
   buildRef100Unit: (policyId: string, assetName: string) => string;
   parseHttpError: (error: unknown) => string;
@@ -58,6 +66,12 @@ export class BlockfrostFetcher {
       if (status === 200 || status === 202) return data;
       throw this._parseHttpError(data);
     } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        throw new BlockfrostNotFoundError(
+          (error.response?.data as { message?: string })?.message ??
+            "The requested component has not been found."
+        );
+      }
       throw this._parseHttpError(error);
     }
   }
@@ -146,6 +160,28 @@ export class BlockfrostFetcher {
     return allTxHashes;
   }
 
+  async fetchAllAssetTransactionsWithBlockTime(
+    asset: string
+  ): Promise<Array<{ tx_hash: string; block_height?: number; block_time?: number }>> {
+    const all: Array<{ tx_hash: string; block_height?: number; block_time?: number }> = [];
+    const pageSize = 100;
+    let currentPage = 1;
+    for (;;) {
+      const pageData = await this._get<
+        Array<{ tx_hash: string; block_height?: number; block_time?: number }>
+      >(`/assets/${asset}/transactions`, {
+        page: currentPage,
+        count: pageSize,
+        order: "asc",
+      });
+      if (!Array.isArray(pageData) || pageData.length === 0) break;
+      all.push(...pageData);
+      if (pageData.length < pageSize) break;
+      currentPage += 1;
+    }
+    return all;
+  }
+
   async fetchAssetsByPolicy(
     policyId: string
   ): Promise<Array<{ asset: string; quantity: string }>> {
@@ -189,6 +225,9 @@ export class BlockfrostFetcher {
       }
       return allUtxos;
     } catch (err: unknown) {
+      if (err instanceof BlockfrostNotFoundError || (err as { statusCode?: number })?.statusCode === 404) {
+        return [];
+      }
       throw this._parseHttpError(err);
     }
   }

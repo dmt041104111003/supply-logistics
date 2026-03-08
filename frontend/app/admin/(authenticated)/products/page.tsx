@@ -12,7 +12,7 @@ import type { Product } from '../../types';
 import { randomAssetName } from '../../utils/asset';
 import { nowForDateTimeLocal } from '../../utils/date';
 import { readAccountFromToken } from '../../lib/account';
-import { getWalletChangeAddress, getWalletUtxoAddresses, signAndSubmitWithEternl } from '../../utils/wallet';
+import { getWalletChangeAddress, getWalletUtxos, getWalletUtxoAddresses, signAndSubmitWithEternl } from '../../utils/wallet';
 import { ProductsHeader } from '../../components/product/ProductsHeader';
 import { ProductsSearch } from '../../components/product/ProductsSearch';
 import { ProductsTable } from '../../components/product/ProductsTable';
@@ -21,7 +21,6 @@ import type { ProfileOption } from '../../types';
 import { uploadFileToIpfs } from '../../lib/ipfs';
 import { getAuthToken } from '../../lib/account';
 import { getBatchByAssetName, getProductRoadmap } from '../../lib/product';
-import { getCertificates, getCertificateIdsByBatch, setCertificatesForBatch } from '../../lib/certificate';
 import { encodeTraceId } from '@/utils/utils';
 import { ProductDialog } from '../../components/product/ProductDialog';
 import { ProductDetailDialog } from '../../components/product/ProductDetailDialog';
@@ -58,12 +57,13 @@ export default function ProductsPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [certificateUploading, setCertificateUploading] = useState(false);
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [certificateUrl, setCertificateUrl] = useState('');
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const certificateInputRef = useRef<HTMLInputElement>(null);
   const lastAddedReceiverRef = useRef<string | null>(null);
-  const [certificateOptions, setCertificateOptions] = useState<{ id: number; title: string }[]>([]);
-  const [selectedCertificateIds, setSelectedCertificateIds] = useState<number[]>([]);
 
   useEffect(() => {
     const account = readAccountFromToken();
@@ -101,23 +101,28 @@ export default function ProductsPage() {
         name?: string;
         description?: string | null;
         image?: string | null;
+        certificate?: string | null;
         sku?: string | null;
         grossWeightKg?: number | null;
         netWeightKg?: number | null;
         originSiteCode?: string | null;
+        canUpdate?: boolean;
       }) => ({
         id: Number(b?.id ?? 0),
         code: String(b?.batchId ?? ''),
         nameEn: String(b?.name ?? ''),
         descriptionEn: b?.description != null ? String(b.description) : null,
         imageUrl: b?.image ? String(b.image) : null,
+        certificate: b?.certificate != null ? String(b.certificate) : null,
         sku: b?.sku ?? null,
         grossWeightKg:
           b?.grossWeightKg != null ? Number(b.grossWeightKg) : null,
         netWeightKg: b?.netWeightKg != null ? Number(b.netWeightKg) : null,
         originSiteCode: b?.originSiteCode ?? null,
+        canUpdate: b?.canUpdate !== false,
       }))
-      .filter((p) => !!p.code);
+      .filter((p) => !!p.code)
+      .sort((a, b) => b.id - a.id);
     setProducts(mapped);
   };
 
@@ -210,7 +215,7 @@ export default function ProductsPage() {
     setMinterCoordinates('');
     setError('');
     setOpen(false);
-    setSelectedCertificateIds([]);
+    setCertificateUrl('');
   };
 
   const loadProfiles = async (): Promise<ProfileOption[]> => {
@@ -227,17 +232,6 @@ export default function ProductsPage() {
     return list;
   };
 
-  const loadCertificateOptions = async () => {
-    const token = getAuthToken();
-    if (!token) return;
-    try {
-      const { items } = await getCertificates(token, { pageSize: 500 });
-      setCertificateOptions(items.map((c) => ({ id: c.id, title: c.title })));
-    } catch {
-      setCertificateOptions([]);
-    }
-  };
-
   const openAdd = () => {
     resetForm();
     setCode(randomAssetName());
@@ -245,17 +239,17 @@ export default function ProductsPage() {
     setMinterLocation(account?.location ?? '');
     setMinterCoordinates(account?.coordinates ?? '');
     void loadProfiles();
-    setSelectedCertificateIds([]);
-    void loadCertificateOptions();
     setOpen(true);
   };
 
   const openEdit = async (p: Product) => {
+    if (p.canUpdate === false) return;
     setEditingId(p.id);
     setCode(p.code);
     setNameEn(p.nameEn);
     setDescriptionEn(p.descriptionEn ?? '');
     setImageUrl(p.imageUrl ?? '');
+    setCertificateUrl(p.certificate ?? '');
     setSku(p.sku ?? '');
     setGrossWeightKg(p.grossWeightKg != null ? String(p.grossWeightKg) : '');
     setNetWeightKg(p.netWeightKg != null ? String(p.netWeightKg) : '');
@@ -269,21 +263,17 @@ export default function ProductsPage() {
     const token = getAuthToken();
     if (token) {
       try {
-        const ids = await getCertificateIdsByBatch(token, p.code);
-        setSelectedCertificateIds(ids);
-      } catch {
-        setSelectedCertificateIds([]);
-      }
-      try {
         const roadmap = await getProductRoadmap(token, p.code);
         const list: string[] = [];
         const names: string[] = [];
         const locs: string[] = [];
         const coords: string[] = [];
+        const seen = new Set<string>();
 
         roadmap.forEach((hop) => {
-          const addr = hop.toAddress?.trim();
-          if (!addr) return;
+          const addr = (hop as { toAddress?: string }).toAddress?.trim();
+          if (!addr || seen.has(addr.toLowerCase())) return;
+          seen.add(addr.toLowerCase());
           const prof = existingProfiles.find(
             (x) => x.walletAddress.trim().toLowerCase() === addr.toLowerCase(),
           );
@@ -304,7 +294,6 @@ export default function ProductsPage() {
       }
     }
 
-    void loadCertificateOptions();
     setOpen(true);
   };
 
@@ -344,6 +333,7 @@ export default function ProductsPage() {
       ngayHetHan: effectiveExpiry,
       current_holder_id: account.stakeAddress,
       sku: sku || undefined,
+      description: descriptionEn?.trim() || undefined,
       grossWeightKg: grossWeightKg ? Number(grossWeightKg) : undefined,
       netWeightKg: netWeightKg ? Number(netWeightKg) : undefined,
     };
@@ -351,6 +341,7 @@ export default function ProductsPage() {
     setLoading(true);
     try {
       const changeAddress = await getWalletChangeAddress();
+      const utxos = await getWalletUtxos();
       const utxoAddresses = await getWalletUtxoAddresses();
       const cookie = typeof document !== 'undefined'
         ? document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith(`${AUTH_COOKIE}=`))
@@ -363,6 +354,7 @@ export default function ProductsPage() {
       const body: any = {
         changeAddress,
         utxoAddresses,
+        walletUtxos: utxos,
         assetName,
         name: nameEn,
         image: effectiveImage,
@@ -373,6 +365,10 @@ export default function ProductsPage() {
         minterCoordinates,
         propertiesJson: JSON.stringify(properties),
       };
+      if (certificateUrl?.trim()) {
+        const cert = certificateUrl.trim();
+        body.certificate = cert.startsWith('ipfs://') ? cert : `ipfs://${cert.replace(/^ipfs:\/\//, '')}`;
+      }
 
       const res = await fetch(url, {
         method: 'POST',
@@ -398,6 +394,7 @@ export default function ProductsPage() {
               name: nameEn,
               description: descriptionEn || undefined,
               image: effectiveImage,
+              certificate: certificateUrl?.trim() || undefined,
               standard: 'Traceability-v1',
               properties,
               metadata: { name: nameEn, image: effectiveImage, standard: 'Traceability-v1' },
@@ -409,6 +406,7 @@ export default function ProductsPage() {
               name: nameEn,
               description: descriptionEn || undefined,
               image: effectiveImage,
+              certificate: certificateUrl?.trim() || undefined,
               minterProfileId: profileId,
               policyId: data.policyId,
               standard: 'Traceability-v1',
@@ -425,11 +423,6 @@ export default function ProductsPage() {
           const confirmData = await confirmRes.json();
           throw new Error(confirmData?.message || confirmData?.error || 'Confirm failed.');
         }
-      }
-
-      try {
-        await setCertificatesForBatch(token, assetName, selectedCertificateIds);
-      } catch {
       }
 
       await loadBatches();
@@ -473,7 +466,7 @@ export default function ProductsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           changeAddress,
-          utxoAddresses: await getWalletUtxoAddresses(),
+          utxoAddresses,
           assetName: target.code,
         }),
       });
@@ -485,16 +478,9 @@ export default function ProductsPage() {
       }
 
       if (data?.unsignedTx) {
-        const txHash = await signAndSubmitWithEternl(data.unsignedTx);
-        const confirmRes = await fetch(`${BACKEND_URL}/product/revoke/confirm?token=${encodeURIComponent(token)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ txHash, assetName: target.code, profileId: account.id }),
+        await signAndSubmitWithEternl(data.unsignedTx, {
+          deleteBatchOnSuccess: { assetName: target.code, action: 'burnRef100' },
         });
-        if (!confirmRes.ok) {
-          const confirmData = await confirmRes.json();
-          throw new Error(confirmData?.message || confirmData?.error || 'Confirm revoke failed.');
-        }
       }
 
       await loadBatches();
@@ -517,7 +503,7 @@ export default function ProductsPage() {
         alert('Policy ID not found for this batch.');
         return;
       }
-      const traceId = encodeTraceId(info.policyId, info.assetName);
+      const traceId = encodeTraceId(info.policyId, info.assetName, undefined);
       const origin =
         typeof window !== 'undefined'
           ? window.location.origin.replace(/\/+$/, '')
@@ -535,12 +521,13 @@ export default function ProductsPage() {
       const QRCode = (qrModule as any).default || qrModule;
 
       const qrDataUrl: string = await QRCode.toDataURL(traceUrl, {
-        margin: 1,
-        width: 256,
+        margin: 2,
+        width: 400,
+        errorCorrectionLevel: 'L',
       });
 
       const doc = new JsPdfCtor();
-      const qrSize = 120;
+      const qrSize = 180;
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const x = (pageWidth - qrSize) / 2;
@@ -578,6 +565,27 @@ export default function ProductsPage() {
       setError(err instanceof Error ? err.message : 'Failed to upload image to IPFS.');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleCertificateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const token = getAuthToken();
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      return;
+    }
+    setCertificateUploading(true);
+    setError('');
+    try {
+      const { ipfsHash } = await uploadFileToIpfs(token, file);
+      setCertificateUrl(ipfsHash ? `ipfs://${ipfsHash.replace(/^ipfs:\/\//, '')}` : '');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload certificate to IPFS.');
+    } finally {
+      setCertificateUploading(false);
     }
   };
 
@@ -656,9 +664,12 @@ export default function ProductsPage() {
         onImageUrlChange={setImageUrl}
         onUploadClick={() => imageInputRef.current?.click()}
         onImageUpload={handleImageUpload}
-        certificateOptions={certificateOptions}
-        selectedCertificateIds={selectedCertificateIds}
-        onCertificateIdsChange={setSelectedCertificateIds}
+        certificateUrl={certificateUrl}
+        certificateUploading={certificateUploading}
+        certificateInputRef={certificateInputRef}
+        onCertificateUrlChange={setCertificateUrl}
+        onCertificateUploadClick={() => certificateInputRef.current?.click()}
+        onCertificateFileChange={handleCertificateUpload}
       />
 
       <ProductDetailDialog

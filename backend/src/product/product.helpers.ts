@@ -89,6 +89,9 @@ export type BuildMetadataInput = {
   image: string;
   properties?: string;
   standard?: string;
+  minter_address?: string;
+  receiver_addresses?: string;
+  certificate?: string;
 };
 
 export function buildMetadata(opts: BuildMetadataInput): Record<string, string> {
@@ -110,6 +113,19 @@ export function buildMetadata(opts: BuildMetadataInput): Record<string, string> 
     properties: JSON.stringify(properties),
     _pk: opts.pk,
     receivers: opts.receivers,
+    receiver_locations: opts.receiver_locations,
+    receiver_coordinates: opts.receiver_coordinates,
+    minter_location: opts.minter_location,
+    minter_coordinates: opts.minter_coordinates,
   };
+  if (opts.minter_address != null && opts.minter_address.trim() !== "") {
+    meta.minter_address = opts.minter_address.trim();
+  }
+  if (opts.receiver_addresses != null && opts.receiver_addresses.trim() !== "") {
+    meta.receiver_addresses = opts.receiver_addresses.trim();
+  }
+  if (opts.certificate != null && opts.certificate.trim() !== "") {
+    meta.certificate = opts.certificate.trim();
+  }
   return meta;
 }
