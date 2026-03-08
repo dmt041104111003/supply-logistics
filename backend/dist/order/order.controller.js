@@ -88,8 +88,6 @@ let OrderController = class OrderController {
             senderAddress: body.senderAddress,
             ownerAddresses: body.ownerAddresses,
             scriptAddress: body.scriptAddress,
-            datumHash: body.datumHash,
-            datumJson: body.datumJson,
         });
     }
     async getDeliveries(token) {

@@ -117,8 +117,6 @@ export class RecordProductTxUseCase {
         certificate: params.certificate !== undefined ? params.certificate : batch.certificate,
         standard: params.standard ?? batch.standard,
         expiryDate: nextExpiryDate ?? null,
-        lastUpdateTxHash: txHash,
-        lastUpdateAt: new Date().toISOString(),
         sku: (baseProps as any).sku ?? batch.sku ?? null,
         grossWeightKg:
           (baseProps as any).grossWeightKg != null

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { BlockfrostProvider } from "@meshsdk/core";
 import { ConfigService } from "../config/config.service";
-import { buildRef100Unit, parseHttpError } from "../../shared/common/utils";
+import { parseHttpError } from "../../shared/common/utils";
 import { BlockfrostFetcher } from "./blockfrost.fetcher";
 
 @Injectable()
@@ -16,11 +16,7 @@ export class CardanoService {
       this._fetcher = new BlockfrostFetcher(
         this.config.blockfrostApiKey,
         0,
-        {
-          buildRef100Unit: (p, a) =>
-            buildRef100Unit(p, a, this.config.cip68Prefix),
-          parseHttpError,
-        }
+        { parseHttpError }
       );
     }
     return this._fetcher;

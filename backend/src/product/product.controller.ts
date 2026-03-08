@@ -128,7 +128,6 @@ export class ProductController {
       minterCoordinates: body.minterCoordinates,
       propertiesJson: body.propertiesJson,
       certificate: body.certificate,
-      certUnit: body.certUnit,
       walletUtxos: body.walletUtxos as any,
       utxoAddresses: body.utxoAddresses,
     });

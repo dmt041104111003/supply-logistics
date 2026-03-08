@@ -16,7 +16,7 @@ export class PrismaProductRepository implements ProductRepositoryPort {
     profileId: number
   ): Promise<ProductBatchListItem[]> {
     const items = await (this.prisma as any).productBatch.findMany({
-      where: { minterProfileId: profileId, revoked: false },
+      where: { minterProfileId: profileId },
       select: {
         id: true,
         batchId: true,
@@ -126,14 +126,6 @@ export class PrismaProductRepository implements ProductRepositoryPort {
       netWeightKg: batch.netWeightKg ?? null,
       originSiteCode: batch.originSiteCode ?? null,
       referenceUtxo: batch.referenceUtxo ?? null,
-      lastUpdateTxHash: batch.lastUpdateTxHash ?? null,
-      lastUpdateAt: batch.lastUpdateAt ?? null,
-      revokeTxHash: batch.revokeTxHash ?? null,
-      revokedAt: batch.revokedAt ?? null,
-      revoked: batch.revoked ?? false,
-      burnTxHash: batch.burnTxHash ?? null,
-      burnedAt: batch.burnedAt ?? null,
-      burned: batch.burned ?? false,
     };
   }
 
@@ -161,8 +153,6 @@ export class PrismaProductRepository implements ProductRepositoryPort {
       certificate,
       standard,
       expiryDate,
-      lastUpdateTxHash,
-      lastUpdateAt,
       sku,
       grossWeightKg,
       netWeightKg,
@@ -177,8 +167,6 @@ export class PrismaProductRepository implements ProductRepositoryPort {
         ...(certificate !== undefined && { certificate }),
         ...(standard !== undefined && { standard }),
         ...(expiryDate !== undefined && { expiryDate }),
-        ...(lastUpdateTxHash !== undefined && { lastUpdateTxHash }),
-        ...(lastUpdateAt !== undefined && { lastUpdateAt }),
         ...(sku !== undefined && { sku }),
         ...(grossWeightKg !== undefined && { grossWeightKg }),
         ...(netWeightKg !== undefined && { netWeightKg }),

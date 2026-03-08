@@ -12,7 +12,6 @@ export declare class MintProductDto {
     minterCoordinates?: string;
     propertiesJson?: string;
     certificate?: string;
-    certUnit?: string;
     walletUtxos?: unknown[];
     utxoAddresses?: string[];
 }
@@ -30,7 +29,6 @@ export declare class UpdateProductDto {
     minterCoordinates?: string;
     propertiesJson?: string;
     certificate?: string;
-    certUnit?: string;
     walletUtxos?: unknown[];
     utxoAddresses?: string[];
 }

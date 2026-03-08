@@ -20,8 +20,6 @@ export declare class ConfigService {
     get pinataGateway(): string;
     get ipfsEndpoint(): string;
     get ipfsGateway(): string;
-    get mintReferenceScriptHash(): string;
-    get storeReferenceScriptHash(): string;
     get validatorTitle(): typeof VALIDATOR_TITLE;
     get cip68Prefix(): typeof CIP68_PREFIX;
     get jwtSecret(): string;

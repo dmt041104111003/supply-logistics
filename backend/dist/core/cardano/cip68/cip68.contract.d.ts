@@ -38,15 +38,4 @@ export declare class Cip68Contract extends MeshAdapter {
         metadata: Record<string, string>;
         txHash?: string;
     }[]) => Promise<string>;
-    createReferenceScriptMint: (MINT_REFERENCE_SCRIPT_ADDRESS: string) => Promise<string>;
-    createReferenceScriptStore: (STORE_REFERENCE_SCRIPT_ADDRESS: string) => Promise<string>;
-    getRftSupply: (assetName: string, policyId?: string) => Promise<string>;
-    getRftBalanceAtAddress: (address: string, assetName: string, policyId?: string) => Promise<number>;
-    getRftDistribution: (assetName: string, inChainAddresses: string[], policyId?: string) => Promise<{
-        inChain: Map<string, number>;
-        offChain: Map<string, number>;
-        totalInChain: number;
-        totalOffChain: number;
-        totalSupply: string;
-    }>;
 }

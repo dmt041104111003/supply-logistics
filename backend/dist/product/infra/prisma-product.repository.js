@@ -18,7 +18,7 @@ let PrismaProductRepository = class PrismaProductRepository {
     }
     async listBatchesByMinter(profileId) {
         const items = await this.prisma.productBatch.findMany({
-            where: { minterProfileId: profileId, revoked: false },
+            where: { minterProfileId: profileId },
             select: {
                 id: true,
                 batchId: true,
@@ -71,7 +71,7 @@ let PrismaProductRepository = class PrismaProductRepository {
         });
     }
     async findBatchByCode(code) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
         const batch = await this.prisma.productBatch.findUnique({
             where: { batchId: code },
         });
@@ -93,12 +93,6 @@ let PrismaProductRepository = class PrismaProductRepository {
             referenceUtxo: (_l = batch.referenceUtxo) !== null && _l !== void 0 ? _l : null,
             lastUpdateTxHash: (_m = batch.lastUpdateTxHash) !== null && _m !== void 0 ? _m : null,
             lastUpdateAt: (_o = batch.lastUpdateAt) !== null && _o !== void 0 ? _o : null,
-            revokeTxHash: (_p = batch.revokeTxHash) !== null && _p !== void 0 ? _p : null,
-            revokedAt: (_q = batch.revokedAt) !== null && _q !== void 0 ? _q : null,
-            revoked: (_r = batch.revoked) !== null && _r !== void 0 ? _r : false,
-            burnTxHash: (_s = batch.burnTxHash) !== null && _s !== void 0 ? _s : null,
-            burnedAt: (_t = batch.burnedAt) !== null && _t !== void 0 ? _t : null,
-            burned: (_u = batch.burned) !== null && _u !== void 0 ? _u : false,
         };
     }
     async getMinterWalletAddressByBatchCode(code) {

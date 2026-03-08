@@ -139,9 +139,6 @@ let ProductService = class ProductService {
         let metadata;
         if (params.metadata) {
             metadata = Object.assign({}, params.metadata);
-            if (params.certUnit != null && params.certUnit.trim() !== "") {
-                metadata._cert_unit = params.certUnit.trim();
-            }
             if ((_a = params.certificate) === null || _a === void 0 ? void 0 : _a.trim())
                 metadata.certificate = params.certificate.trim();
         }

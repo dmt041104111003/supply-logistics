@@ -59,7 +59,6 @@ export declare class ProductService {
         minterCoordinates?: string;
         propertiesJson?: string;
         certificate?: string;
-        certUnit?: string;
         walletUtxos?: UTxO[];
         utxoAddresses?: string[];
     }): Promise<{

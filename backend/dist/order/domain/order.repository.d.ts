@@ -6,8 +6,6 @@ export interface DeliveryOrderRow {
     batchId: string;
     policyId: string | null;
     scriptAddress: string | null;
-    datumHash: string | null;
-    datumJson: unknown | null;
     recipientAddress: string;
     senderAddress: string;
     ownerAddresses: string[];
@@ -26,8 +24,6 @@ export interface OrderSummary {
     batchId: string;
     policyId: string | null;
     scriptAddress: string | null;
-    datumHash: string | null;
-    datumJson: unknown | null;
     recipientAddress: string;
     senderAddress: string;
     ownerAddresses: string[];
@@ -44,8 +40,6 @@ export interface OrderRecordParams {
     batchId: string;
     policyId?: string;
     scriptAddress?: string;
-    datumHash?: string;
-    datumJson?: unknown;
     recipientAddress: string;
     senderAddress: string;
     ownerAddresses: string[];

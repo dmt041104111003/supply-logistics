@@ -1,17 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.buildRef100Unit = buildRef100Unit;
 exports.datumToJson = datumToJson;
 exports.getPkHash = getPkHash;
 exports.decodeReceivers = decodeReceivers;
 exports.ensureReceiversRaw = ensureReceiversRaw;
 exports.metadataForDatum = metadataForDatum;
 const cbor_1 = require("cbor");
-const config_service_1 = require("../../config/config.service");
-function buildRef100Unit(policyId, assetName) {
-    const hexName = Buffer.from(assetName, "utf8").toString("hex");
-    return `${policyId}${config_service_1.CIP68_PREFIX.REFERENCE_100}${hexName}`;
-}
 function datumValueToStr(value, asHex = false) {
     if (value == null)
         return "";

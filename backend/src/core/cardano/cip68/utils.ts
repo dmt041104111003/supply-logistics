@@ -1,10 +1,4 @@
 import { decodeFirst } from "cbor";
-import { CIP68_PREFIX } from "../../config/config.service";
-
-export function buildRef100Unit(policyId: string, assetName: string): string {
-  const hexName = Buffer.from(assetName, "utf8").toString("hex");
-  return `${policyId}${CIP68_PREFIX.REFERENCE_100}${hexName}`;
-}
 
 function datumValueToStr(value: unknown, asHex = false): string {
   if (value == null) return "";

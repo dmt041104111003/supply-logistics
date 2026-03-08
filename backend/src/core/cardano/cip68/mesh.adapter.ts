@@ -256,24 +256,4 @@ export class MeshAdapter {
       utxoWithUnit
     );
   };
-
-  protected getAddressUTXOAssets = async (
-    address: string,
-    unit: string
-  ): Promise<UTxO[]> => {
-    await this._initPromise;
-    const utxosAtAddress =
-      await this.blockfrostFetcher.fetchUtxoByAddress(address);
-    const utxosWithUnit =
-      utxosAtAddress?.filter((u) =>
-        u.amount?.some((a) => a.unit === unit)
-      ) ?? [];
-    return utxosWithUnit.map((utxo) =>
-      toUtxo(
-        { txHash: utxo.tx_hash, outputIndex: utxo.output_index },
-        utxo
-      )
-    );
-  };
 }
-

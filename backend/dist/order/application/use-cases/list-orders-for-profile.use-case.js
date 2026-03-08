@@ -34,7 +34,7 @@ let ListOrdersForProfileUseCase = class ListOrdersForProfileUseCase {
             return owners.some((addr) => (addr || "").trim().toLowerCase() === lower);
         })
             .map((r) => {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+            var _a, _b, _c, _d, _e, _f, _g;
             return ({
                 id: r.id,
                 lockTxHash: r.lockTxHash,
@@ -42,19 +42,17 @@ let ListOrdersForProfileUseCase = class ListOrdersForProfileUseCase {
                 batchId: r.batchId,
                 policyId: r.policyId,
                 scriptAddress: (_a = r.scriptAddress) !== null && _a !== void 0 ? _a : null,
-                datumHash: (_b = r.datumHash) !== null && _b !== void 0 ? _b : null,
-                datumJson: (_c = r.datumJson) !== null && _c !== void 0 ? _c : null,
                 recipientAddress: r.recipientAddress,
                 senderAddress: r.senderAddress,
                 ownerAddresses: Array.isArray(r.ownerAddresses)
                     ? r.ownerAddresses
                     : [],
                 status: String(r.status),
-                partialSignedTxHex: (_d = r.partialSignedTxHex) !== null && _d !== void 0 ? _d : null,
-                partialSignedByAddress: (_e = r.partialSignedByAddress) !== null && _e !== void 0 ? _e : null,
-                secondSignedByAddress: (_f = r.secondSignedByAddress) !== null && _f !== void 0 ? _f : null,
-                unlockTxHash: (_g = r.unlockTxHash) !== null && _g !== void 0 ? _g : null,
-                outAt: (_h = r.actualDeliveryAt) !== null && _h !== void 0 ? _h : (String(r.status) === "DELIVERED" ? (_j = r.updatedAt) !== null && _j !== void 0 ? _j : null : null),
+                partialSignedTxHex: (_b = r.partialSignedTxHex) !== null && _b !== void 0 ? _b : null,
+                partialSignedByAddress: (_c = r.partialSignedByAddress) !== null && _c !== void 0 ? _c : null,
+                secondSignedByAddress: (_d = r.secondSignedByAddress) !== null && _d !== void 0 ? _d : null,
+                unlockTxHash: (_e = r.unlockTxHash) !== null && _e !== void 0 ? _e : null,
+                outAt: (_f = r.actualDeliveryAt) !== null && _f !== void 0 ? _f : (String(r.status) === "DELIVERED" ? (_g = r.updatedAt) !== null && _g !== void 0 ? _g : null : null),
             });
         });
     }

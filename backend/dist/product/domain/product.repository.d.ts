@@ -33,12 +33,6 @@ export interface ProductBatchSnapshot {
     referenceUtxo: string | null;
     lastUpdateTxHash: string | null;
     lastUpdateAt: Date | null;
-    revokeTxHash: string | null;
-    revokedAt: Date | null;
-    revoked: boolean;
-    burnTxHash: string | null;
-    burnedAt: Date | null;
-    burned: boolean;
 }
 export interface MintBatchParams {
     batchId: string;

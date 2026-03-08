@@ -3,12 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.computeMintScriptCborForMinterAddress = computeMintScriptCborForMinterAddress;
 const core_1 = require("@meshsdk/core");
 const config_service_1 = require("../../config/config.service");
-function computeMintScriptCborForMinterAddress(minterChangeAddress, opts) {
-    var _a, _b, _c;
+function computeMintScriptCborForMinterAddress(minterChangeAddress) {
     const config = new config_service_1.ConfigService();
-    const plutus = (_a = opts === null || opts === void 0 ? void 0 : opts.plutus) !== null && _a !== void 0 ? _a : config.getPlutus();
-    const networkId = (_b = opts === null || opts === void 0 ? void 0 : opts.networkId) !== null && _b !== void 0 ? _b : config.appNetworkId;
-    const t = (_c = opts === null || opts === void 0 ? void 0 : opts.title) !== null && _c !== void 0 ? _c : config.validatorTitle;
+    const plutus = config.getPlutus();
+    const networkId = config.appNetworkId;
+    const t = config.validatorTitle;
     const addr = (0, core_1.deserializeAddress)(minterChangeAddress);
     const pubKeyIssuer = addr.pubKeyHash;
     const stakeCredentialHash = addr.stakeCredentialHash;

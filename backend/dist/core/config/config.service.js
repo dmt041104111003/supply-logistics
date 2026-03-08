@@ -62,14 +62,6 @@ let ConfigService = class ConfigService {
         var _a, _b;
         return ((_b = (_a = process.env.IPFS_GATEWAY) !== null && _a !== void 0 ? _a : process.env.NEXT_PUBLIC_IPFS_GATEWAY) !== null && _b !== void 0 ? _b : "https://ipfs.io/");
     }
-    get mintReferenceScriptHash() {
-        var _a;
-        return (_a = process.env.MINT_REFERENCE_SCRIPT_HASH) !== null && _a !== void 0 ? _a : "";
-    }
-    get storeReferenceScriptHash() {
-        var _a;
-        return (_a = process.env.STORE_REFERENCE_SCRIPT_HASH) !== null && _a !== void 0 ? _a : "";
-    }
     get validatorTitle() {
         return exports.VALIDATOR_TITLE;
     }

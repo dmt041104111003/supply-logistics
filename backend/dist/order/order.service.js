@@ -216,8 +216,6 @@ let OrderService = class OrderService {
             batchId: params.batchId,
             policyId: params.policyId,
             scriptAddress: params.scriptAddress,
-            datumHash: params.datumHash,
-            datumJson: params.datumJson,
             recipientAddress: params.recipientAddress,
             senderAddress: params.senderAddress,
             ownerAddresses: params.ownerAddresses,

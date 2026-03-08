@@ -65,14 +65,6 @@ export class ConfigService {
     );
   }
 
-  get mintReferenceScriptHash(): string {
-    return process.env.MINT_REFERENCE_SCRIPT_HASH ?? "";
-  }
-
-  get storeReferenceScriptHash(): string {
-    return process.env.STORE_REFERENCE_SCRIPT_HASH ?? "";
-  }
-
   get validatorTitle(): typeof VALIDATOR_TITLE {
     return VALIDATOR_TITLE;
   }

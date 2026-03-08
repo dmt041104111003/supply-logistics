@@ -1,6 +1,6 @@
 import { BlockfrostProvider } from "@meshsdk/core";
 import { ConfigService } from "../config/config.service";
-import { buildRef100Unit, parseHttpError } from "../../shared/common/utils";
+import { parseHttpError } from "../../shared/common/utils";
 import { BlockfrostFetcher } from "./blockfrost.fetcher";
 
 let _config: ConfigService | null = null;
@@ -14,9 +14,7 @@ function getConfig(): ConfigService {
 
 export function getBlockfrostFetcher(): BlockfrostFetcher {
   if (!_fetcher) {
-    const config = getConfig();
-    _fetcher = new BlockfrostFetcher(config.blockfrostApiKey, 0, {
-      buildRef100Unit: (p, a) => buildRef100Unit(p, a, config.cip68Prefix),
+    _fetcher = new BlockfrostFetcher(getConfig().blockfrostApiKey, 0, {
       parseHttpError,
     });
   }

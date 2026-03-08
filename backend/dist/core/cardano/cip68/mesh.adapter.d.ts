@@ -45,5 +45,4 @@ export declare class MeshAdapter {
     protected getPolicyIdFromWalletRft: (walletAddress: string, rftSuffix: string) => Promise<string | undefined>;
     protected getUtxoContainingUnit: (unit: string) => Promise<UTxO | undefined>;
     protected getAddressUTXOAsset: (address: string, unit: string) => Promise<UTxO | undefined>;
-    protected getAddressUTXOAssets: (address: string, unit: string) => Promise<UTxO[]>;
 }

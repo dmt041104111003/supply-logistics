@@ -7,17 +7,15 @@ import {
   serializeAddressObj,
   serializePlutusScript,
 } from "@meshsdk/core";
-import { ConfigService, VALIDATOR_TITLE } from "../../config/config.service";
-import type { Plutus } from "../../../shared/types";
+import { ConfigService } from "../../config/config.service";
 
 export function computeMintScriptCborForMinterAddress(
-  minterChangeAddress: string,
-  opts?: { plutus?: Plutus; networkId?: number; title?: typeof VALIDATOR_TITLE }
+  minterChangeAddress: string
 ): { mintScriptCbor: string; policyId: string } {
   const config = new ConfigService();
-  const plutus = opts?.plutus ?? config.getPlutus();
-  const networkId = opts?.networkId ?? config.appNetworkId;
-  const t = opts?.title ?? config.validatorTitle;
+  const plutus = config.getPlutus();
+  const networkId = config.appNetworkId;
+  const t = config.validatorTitle;
 
   const addr = deserializeAddress(minterChangeAddress);
   const pubKeyIssuer = addr.pubKeyHash;

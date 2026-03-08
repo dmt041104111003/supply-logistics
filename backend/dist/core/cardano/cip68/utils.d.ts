@@ -1,4 +1,3 @@
-export declare function buildRef100Unit(policyId: string, assetName: string): string;
 export declare function datumToJson(datum: string, option?: {
     contain_pk?: boolean;
 }): Promise<unknown>;

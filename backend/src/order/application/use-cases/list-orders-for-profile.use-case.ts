@@ -37,8 +37,6 @@ export class ListOrdersForProfileUseCase {
         batchId: r.batchId,
         policyId: r.policyId,
         scriptAddress: r.scriptAddress ?? null,
-        datumHash: r.datumHash ?? null,
-        datumJson: r.datumJson ?? null,
         recipientAddress: r.recipientAddress,
         senderAddress: r.senderAddress,
         ownerAddresses: Array.isArray(r.ownerAddresses)

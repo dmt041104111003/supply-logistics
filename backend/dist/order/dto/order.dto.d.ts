@@ -52,8 +52,6 @@ export declare class OrderConfirmDto {
     senderAddress: string;
     ownerAddresses: string[];
     scriptAddress?: string;
-    datumHash?: string;
-    datumJson?: unknown;
 }
 export declare class OrderCompleteDto {
     unlockTxHash: string;

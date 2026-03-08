@@ -57,8 +57,6 @@ export class OrderConfirmDto {
   senderAddress!: string;
   ownerAddresses!: string[];
   scriptAddress?: string;
-  datumHash?: string;
-  datumJson?: unknown;
 }
 
 export class OrderCompleteDto {

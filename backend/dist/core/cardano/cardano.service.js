@@ -23,10 +23,7 @@ let CardanoService = class CardanoService {
     }
     get blockfrostFetcher() {
         if (!this._fetcher) {
-            this._fetcher = new blockfrost_fetcher_1.BlockfrostFetcher(this.config.blockfrostApiKey, 0, {
-                buildRef100Unit: (p, a) => (0, utils_1.buildRef100Unit)(p, a, this.config.cip68Prefix),
-                parseHttpError: utils_1.parseHttpError,
-            });
+            this._fetcher = new blockfrost_fetcher_1.BlockfrostFetcher(this.config.blockfrostApiKey, 0, { parseHttpError: utils_1.parseHttpError });
         }
         return this._fetcher;
     }

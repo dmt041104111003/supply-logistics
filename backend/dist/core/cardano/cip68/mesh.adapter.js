@@ -87,13 +87,6 @@ class MeshAdapter {
                 return undefined;
             return toUtxo({ txHash: utxoWithUnit.tx_hash, outputIndex: utxoWithUnit.output_index }, utxoWithUnit);
         };
-        this.getAddressUTXOAssets = async (address, unit) => {
-            var _a;
-            await this._initPromise;
-            const utxosAtAddress = await this.blockfrostFetcher.fetchUtxoByAddress(address);
-            const utxosWithUnit = (_a = utxosAtAddress === null || utxosAtAddress === void 0 ? void 0 : utxosAtAddress.filter((u) => { var _a; return (_a = u.amount) === null || _a === void 0 ? void 0 : _a.some((a) => a.unit === unit); })) !== null && _a !== void 0 ? _a : [];
-            return utxosWithUnit.map((utxo) => toUtxo({ txHash: utxo.tx_hash, outputIndex: utxo.output_index }, utxo));
-        };
         const { wallet = null, minterMintScriptCbor, fetcher, provider, blockfrostFetcher: bf, plutus, appNetworkId, title, } = opts;
         this.wallet = wallet;
         this.minterMintScriptCbor = minterMintScriptCbor;

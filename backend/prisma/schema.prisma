@@ -44,14 +44,6 @@ model ProductBatch {
   policyId         String?
   expiryDate       DateTime?
   referenceUtxo    String?
-  lastUpdateTxHash String?
-  lastUpdateAt     DateTime?
-  revokeTxHash     String?
-  revokedAt        DateTime?
-  revoked          Boolean  @default(false)
-  burnTxHash       String?
-  burnedAt         DateTime?
-  burned           Boolean  @default(false)
   createdAt        DateTime @default(now())
 
   minterProfileId  Int
@@ -61,20 +53,14 @@ model ProductBatch {
 }
 
 model WarehouseInventory {
-  id          Int       @id @default(autoincrement())
-  batchId     String
-  profileId   Int
-  status      String    @default("IN_WAREHOUSE")
-  receivedAt  DateTime  @default(now())
-  warehouseCode String?
-  zone          String?
-  aisle         String?
-  rack          String?
-  bin           String?
-  lastMovedAt   DateTime?
-  shippedAt     DateTime?
-  consumedAt    DateTime?
-  burnTxHash    String?
+  id           Int       @id @default(autoincrement())
+  batchId      String
+  profileId    Int
+  status       String    @default("IN_WAREHOUSE")
+  receivedAt   DateTime  @default(now())
+  lastMovedAt  DateTime?
+  shippedAt    DateTime?
+  consumedAt   DateTime?
 
   batch   ProductBatch @relation(fields: [batchId], references: [batchId], onDelete: Cascade)
   profile Profile      @relation("WarehouseOwner", fields: [profileId], references: [id], onDelete: Cascade)
@@ -94,8 +80,6 @@ model DeliveryOrder {
   batchId                String
   policyId               String?
   scriptAddress          String?
-  datumHash              String?
-  datumJson              Json?
   recipientAddress       String
   senderAddress          String
   ownerAddresses         Json
@@ -104,22 +88,9 @@ model DeliveryOrder {
   partialSignedByAddress String?
   secondSignedByAddress  String?
   unlockTxHash           String?
+  actualDeliveryAt       DateTime?
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
-  shipmentNo             String?
-  customerCode           String?
-  shipToName             String?
-  shipToAddress          String?
-  shipToCity             String?
-  shipToCountry          String?
-  shipToPhone            String?
-  carrierName            String?
-  transportMode          String?
-  trackingNumber         String?
-  plannedPickupAt        DateTime?
-  plannedDeliveryAt      DateTime?
-  actualPickupAt         DateTime?
-  actualDeliveryAt       DateTime?
 
   @@unique([lockTxHash, scriptOutputIndex])
 }

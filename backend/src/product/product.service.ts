@@ -167,7 +167,6 @@ export class ProductService {
     minterCoordinates?: string;
     propertiesJson?: string;
     certificate?: string;
-    certUnit?: string;
     walletUtxos?: UTxO[];
     utxoAddresses?: string[];
   }): Promise<{ unsignedTx: string }> {
@@ -178,9 +177,6 @@ export class ProductService {
     let metadata: Record<string, string>;
     if (params.metadata) {
       metadata = { ...params.metadata };
-      if (params.certUnit != null && params.certUnit.trim() !== "") {
-        metadata._cert_unit = params.certUnit.trim();
-      }
       if (params.certificate?.trim()) metadata.certificate = params.certificate.trim();
     } else {
       if (

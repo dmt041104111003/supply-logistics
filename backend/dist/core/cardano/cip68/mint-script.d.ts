@@ -1,10 +1,4 @@
-import { VALIDATOR_TITLE } from "../../config/config.service";
-import type { Plutus } from "../../../shared/types";
-export declare function computeMintScriptCborForMinterAddress(minterChangeAddress: string, opts?: {
-    plutus?: Plutus;
-    networkId?: number;
-    title?: typeof VALIDATOR_TITLE;
-}): {
+export declare function computeMintScriptCborForMinterAddress(minterChangeAddress: string): {
     mintScriptCbor: string;
     policyId: string;
 };

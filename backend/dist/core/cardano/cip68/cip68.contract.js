@@ -6,7 +6,6 @@ const lodash_1 = require("lodash");
 const mesh_adapter_1 = require("./mesh.adapter");
 const config_service_1 = require("../../config/config.service");
 const utils_1 = require("./utils");
-const standalone_1 = require("../standalone");
 const CIP68_222 = (tokenNameHex) => `000de140${tokenNameHex}`;
 class Cip68Contract extends mesh_adapter_1.MeshAdapter {
     constructor(opts = {}) {
@@ -216,97 +215,6 @@ class Cip68Contract extends mesh_adapter_1.MeshAdapter {
                 .txInCollateral(collateral.input.txHash, collateral.input.outputIndex, collateral.output.amount, collateral.output.address)
                 .setNetwork(this.appNetwork);
             return await unsignedTx.complete();
-        };
-        this.createReferenceScriptMint = async (MINT_REFERENCE_SCRIPT_ADDRESS) => {
-            const { walletAddress, utxos, collateral } = await this.getWalletForTx();
-            const unsignedTx = this.meshTxBuilder
-                .txIn(collateral.input.txHash, collateral.input.outputIndex)
-                .txOut(MINT_REFERENCE_SCRIPT_ADDRESS, [
-                { unit: "lovelace", quantity: "20000000" },
-            ])
-                .txOutReferenceScript(this.mintScriptCbor, "V3")
-                .txOutDatumHashValue("")
-                .changeAddress(walletAddress)
-                .selectUtxosFrom(utxos)
-                .txInCollateral(collateral.input.txHash, collateral.input.outputIndex, collateral.output.amount, collateral.output.address);
-            return await unsignedTx.complete();
-        };
-        this.createReferenceScriptStore = async (STORE_REFERENCE_SCRIPT_ADDRESS) => {
-            const { walletAddress, utxos, collateral } = await this.getWalletForTx();
-            const unsignedTx = this.meshTxBuilder
-                .txIn(collateral.input.txHash, collateral.input.outputIndex)
-                .txOut(STORE_REFERENCE_SCRIPT_ADDRESS, [
-                { unit: "lovelace", quantity: "20000000" },
-            ])
-                .txOutReferenceScript(this.storeScriptCbor, "V3")
-                .txOutDatumHashValue("")
-                .changeAddress(walletAddress)
-                .selectUtxosFrom(utxos)
-                .txInCollateral(collateral.input.txHash, collateral.input.outputIndex, collateral.output.amount, collateral.output.address);
-            return await unsignedTx.complete();
-        };
-        this.getRftSupply = async (assetName, policyId) => {
-            var _a;
-            const policyIdToUse = policyId !== null && policyId !== void 0 ? policyId : this.policyId;
-            const rftUnit = policyIdToUse + CIP68_222((0, core_1.stringToHex)(assetName));
-            try {
-                const assetInfo = (await standalone_1.blockfrostFetcher.fetchSpecificAsset(rftUnit));
-                return (_a = assetInfo === null || assetInfo === void 0 ? void 0 : assetInfo.quantity) !== null && _a !== void 0 ? _a : "0";
-            }
-            catch (_b) {
-                return "0";
-            }
-        };
-        this.getRftBalanceAtAddress = async (address, assetName, policyId) => {
-            const policyIdToUse = policyId !== null && policyId !== void 0 ? policyId : this.policyId;
-            const rftUnit = policyIdToUse + CIP68_222((0, core_1.stringToHex)(assetName));
-            const utxos = await this.getAddressUTXOAssets(address, rftUnit);
-            return utxos.reduce((sum, u) => sum +
-                u.output.amount.reduce((amt, a) => (a.unit === rftUnit ? amt + Number(a.quantity) : amt), 0), 0);
-        };
-        this.getRftDistribution = async (assetName, inChainAddresses, policyId) => {
-            var _a;
-            const policyIdToUse = policyId !== null && policyId !== void 0 ? policyId : this.policyId;
-            const rftUnit = policyIdToUse + CIP68_222((0, core_1.stringToHex)(assetName));
-            const inChainSet = new Set(inChainAddresses.map((a) => a.toLowerCase()));
-            const inChainMap = new Map();
-            const offChainMap = new Map();
-            const txList = await standalone_1.blockfrostFetcher.fetchAllAssetTransactions(rftUnit);
-            const allAddresses = new Set();
-            for (const txHash of txList.map((t) => t.tx_hash)) {
-                try {
-                    const tx = await standalone_1.blockfrostFetcher.fetchTransactionsUTxO(txHash);
-                    for (const output of tx.outputs || []) {
-                        const hasRft = (_a = output.amount) === null || _a === void 0 ? void 0 : _a.some((a) => a.unit === rftUnit);
-                        if (hasRft && output.address) {
-                            allAddresses.add(output.address);
-                        }
-                    }
-                }
-                catch (_b) {
-                }
-            }
-            for (const address of allAddresses) {
-                const balance = await this.getRftBalanceAtAddress(address, assetName, policyIdToUse);
-                if (balance > 0) {
-                    if (inChainSet.has(address.toLowerCase())) {
-                        inChainMap.set(address, balance);
-                    }
-                    else {
-                        offChainMap.set(address, balance);
-                    }
-                }
-            }
-            const totalInChain = Array.from(inChainMap.values()).reduce((sum, b) => sum + b, 0);
-            const totalOffChain = Array.from(offChainMap.values()).reduce((sum, b) => sum + b, 0);
-            const totalSupply = await this.getRftSupply(assetName, policyIdToUse);
-            return {
-                inChain: inChainMap,
-                offChain: offChainMap,
-                totalInChain,
-                totalOffChain,
-                totalSupply,
-            };
         };
     }
     get appNetwork() {
