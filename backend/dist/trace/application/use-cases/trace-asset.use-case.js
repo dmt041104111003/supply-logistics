@@ -343,7 +343,7 @@ let TraceAssetUseCase = class TraceAssetUseCase {
             const status = burnStatus === "burned" && isBurnHere
                 ? "burned"
                 : isInScript
-                    ? properlyReachedIndices.has(pointIndex) && pointIndex <= inTransitFromIndex
+                    ? properlyReachedIndices.has(pointIndex)
                         ? "completed"
                         : pointIndex === inTransitFromIndex + 1
                             ? "in_transit"
@@ -370,7 +370,7 @@ let TraceAssetUseCase = class TraceAssetUseCase {
             const status = burnStatus === "burned" && isBurnHere
                 ? "burned"
                 : isInScript
-                    ? properlyReachedIndices.has(pointIndex) && pointIndex <= inTransitFromIndex
+                    ? properlyReachedIndices.has(pointIndex)
                         ? "completed"
                         : pointIndex === inTransitFromIndex + 1
                             ? "in_transit"
