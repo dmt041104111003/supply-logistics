@@ -24,13 +24,14 @@ import { getBatchByAssetName, getProductRoadmap } from '../../lib/product';
 import { encodeTraceId } from '@/utils/utils';
 import { ProductDialog } from '../../components/product/ProductDialog';
 import { ProductDetailDialog } from '../../components/product/ProductDetailDialog';
+import { normalizeIpfsUrl } from '../../utils/ipfs';
+import { requireAuthToken } from '../../utils/auth';
 
 const styles = { ...formStyles, ...tableStyles, ...buttonStyles, ...dialogStyles, ...paginationStyles };
 const PAGE_SIZE = 10;
 const DEFAULT_IMAGE_IPFS = 'ipfs://bafkreiak6rnkvx24nks3yadlg6x6emr6jtfbflufke5dzxi2sr66usyyne';
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:3000';
-const AUTH_COOKIE = 'auth_token';
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -76,10 +77,7 @@ export default function ProductsPage() {
   const loadBatches = async () => {
     const account = readAccountFromToken();
     if (!account || account.roleCode?.toUpperCase() !== 'ENTERPRISE') return;
-    const cookie = typeof document !== 'undefined'
-      ? document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith(`${AUTH_COOKIE}=`))
-      : null;
-    const token = cookie ? decodeURIComponent(cookie.split('=')[1] ?? '') : '';
+    const token = getAuthToken() ?? '';
     if (!token) {
       setProducts([]);
       return;
@@ -222,10 +220,7 @@ export default function ProductsPage() {
   };
 
   const loadProfiles = async (): Promise<ProfileOption[]> => {
-    const cookie = typeof document !== 'undefined'
-      ? document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith(`${AUTH_COOKIE}=`))
-      : null;
-    const token = cookie ? decodeURIComponent(cookie.split('=')[1] ?? '') : '';
+    const token = getAuthToken() ?? '';
     if (!token) return [];
     const res = await fetch(`${BACKEND_URL}/profile/profiles`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -348,11 +343,7 @@ export default function ProductsPage() {
       const changeAddress = await getWalletChangeAddress();
       const utxos = await getWalletUtxos();
       const utxoAddresses = await getWalletUtxoAddresses();
-      const cookie = typeof document !== 'undefined'
-        ? document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith(`${AUTH_COOKIE}=`))
-        : null;
-      const token = cookie ? decodeURIComponent(cookie.split('=')[1] ?? '') : '';
-      if (!token) throw new Error('Session expired. Please log in again.');
+      const token = requireAuthToken();
 
       const isEdit = editingId !== null;
       const url = `${BACKEND_URL}/product/${isEdit ? 'update' : 'mint'}`;
@@ -371,8 +362,7 @@ export default function ProductsPage() {
         propertiesJson: JSON.stringify(properties),
       };
       if (certificateUrl?.trim()) {
-        const cert = certificateUrl.trim();
-        body.certificate = cert.startsWith('ipfs://') ? cert : `ipfs://${cert.replace(/^ipfs:\/\//, '')}`;
+        body.certificate = normalizeIpfsUrl(certificateUrl);
       }
 
       const res = await fetch(url, {
@@ -466,11 +456,7 @@ export default function ProductsPage() {
     try {
       const changeAddress = await getWalletChangeAddress();
       const utxoAddresses = await getWalletUtxoAddresses();
-      const cookie = typeof document !== 'undefined'
-        ? document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith(`${AUTH_COOKIE}=`))
-        : null;
-      const token = cookie ? decodeURIComponent(cookie.split('=')[1] ?? '') : '';
-      if (!token) throw new Error('Session expired. Please log in again.');
+      const token = requireAuthToken();
 
       const res = await fetch(`${BACKEND_URL}/product/revoke`, {
         method: 'POST',

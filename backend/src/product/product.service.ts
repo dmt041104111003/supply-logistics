@@ -76,6 +76,58 @@ export class ProductService {
     }
   }
 
+  private buildMetadataOrThrow(params: {
+    changeAddress: string;
+    metadata?: Record<string, string>;
+    name?: string;
+    image?: string;
+    receivers?: string[];
+    receiverLocations?: string;
+    receiverCoordinates?: string;
+    minterLocation?: string;
+    minterCoordinates?: string;
+    propertiesJson?: string;
+    certificate?: string;
+  }): Record<string, string> {
+    if (params.metadata) {
+      const out: Record<string, string> = { ...params.metadata };
+      if (params.certificate?.trim()) out.certificate = params.certificate.trim();
+      return out;
+    }
+
+    if (
+      !params.name ||
+      !params.image ||
+      !params.receivers?.length ||
+      !params.receiverLocations ||
+      !params.receiverCoordinates ||
+      !params.minterLocation ||
+      !params.minterCoordinates
+    ) {
+      throw new BadRequestException(
+        "Need metadata or all of (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)",
+      );
+    }
+
+    const addrObj = deserializeAddress(params.changeAddress);
+    const receiversPk = params.receivers.map((addr) => resolvePaymentKeyHash(addr)).join(",");
+    return buildMetadata({
+      pk: addrObj.pubKeyHash,
+      receivers: receiversPk,
+      receiver_locations: params.receiverLocations,
+      receiver_coordinates: params.receiverCoordinates,
+      minter_location: params.minterLocation,
+      minter_coordinates: params.minterCoordinates,
+      name: params.name,
+      image: params.image,
+      properties: params.propertiesJson,
+      standard: "Traceability-v1",
+      minter_address: params.changeAddress,
+      receiver_addresses: params.receivers.join(","),
+      certificate: params.certificate,
+    });
+  }
+
   async listRoadmap(batchId: string): Promise<{ stepIndex: number; toAddress: string | null }[]> {
     const batch = await this.productRepository.findBatchByCode(batchId.trim());
     if (!batch?.policyId?.trim()) return [];
@@ -108,44 +160,8 @@ export class ProductService {
       walletUtxos: params.walletUtxos,
       utxoAddresses: params.utxoAddresses,
     });
-    let metadata: Record<string, string>;
-    let receiver: string;
-    if (params.metadata) {
-      metadata = { ...params.metadata };
-      if (params.certificate?.trim()) metadata.certificate = params.certificate.trim();
-      receiver = params.receiver ?? params.changeAddress;
-    } else {
-      if (
-        !params.name ||
-        !params.image ||
-        !params.receivers?.length ||
-        !params.receiverLocations ||
-        !params.receiverCoordinates ||
-        !params.minterLocation ||
-        !params.minterCoordinates
-      ) {
-        throw new BadRequestException(
-          "Need metadata or all of (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)",
-        );
-      }
-      const addrObj = deserializeAddress(params.changeAddress);
-      const receiversPk = params.receivers.map((addr) => resolvePaymentKeyHash(addr)).join(",");
-      metadata = buildMetadata({
-        pk: addrObj.pubKeyHash,
-        receivers: receiversPk,
-        receiver_locations: params.receiverLocations,
-        receiver_coordinates: params.receiverCoordinates,
-        minter_location: params.minterLocation,
-        minter_coordinates: params.minterCoordinates,
-        name: params.name,
-        image: params.image,
-        properties: params.propertiesJson,
-        standard: "Traceability-v1",
-        minter_address: params.changeAddress,
-        receiver_addresses: params.receivers.join(","),
-      });
-      receiver = params.changeAddress;
-    }
+    const metadata = this.buildMetadataOrThrow(params);
+    const receiver = params.metadata ? (params.receiver ?? params.changeAddress) : params.changeAddress;
     const unsignedTx = await contract.mint([
       { assetName: params.assetName, metadata, quantity: "1", receiver },
     ]);
@@ -174,42 +190,7 @@ export class ProductService {
       walletUtxos: params.walletUtxos,
       utxoAddresses: params.utxoAddresses,
     });
-    let metadata: Record<string, string>;
-    if (params.metadata) {
-      metadata = { ...params.metadata };
-      if (params.certificate?.trim()) metadata.certificate = params.certificate.trim();
-    } else {
-      if (
-        !params.name ||
-        !params.image ||
-        !params.receivers?.length ||
-        !params.receiverLocations ||
-        !params.receiverCoordinates ||
-        !params.minterLocation ||
-        !params.minterCoordinates
-      ) {
-        throw new BadRequestException(
-          "Need metadata or all of (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)",
-        );
-      }
-      const addrObj = deserializeAddress(params.changeAddress);
-      const receiversPk = params.receivers.map((addr) => resolvePaymentKeyHash(addr)).join(",");
-      metadata = buildMetadata({
-        pk: addrObj.pubKeyHash,
-        receivers: receiversPk,
-        receiver_locations: params.receiverLocations,
-        receiver_coordinates: params.receiverCoordinates,
-        minter_location: params.minterLocation,
-        minter_coordinates: params.minterCoordinates,
-        name: params.name,
-        image: params.image,
-        properties: params.propertiesJson,
-        standard: "Traceability-v1",
-        minter_address: params.changeAddress,
-        receiver_addresses: params.receivers.join(","),
-        certificate: params.certificate,
-      });
-    }
+    const metadata = this.buildMetadataOrThrow(params);
     const unsignedTx = await contract.update([
       { assetName: params.assetName, metadata, txHash: params.txHash },
     ]);
@@ -365,44 +346,46 @@ export class ProductService {
     fromBase64: boolean,
     deleteBatchOnSuccess?: { assetName: string; action: "burn222" | "burnRef100" }
   ): Promise<{ txHash: string }> {
-    let cborBuffer: Buffer;
-    if (fromBase64) {
-      try {
-        cborBuffer = Buffer.from(signedTxInput, "base64");
-      } catch {
-        throw new BadRequestException("signedTxBase64 is invalid");
+    const toCborBuffer = (input: string, isBase64: boolean): Buffer => {
+      if (isBase64) {
+        try {
+          return Buffer.from(input, "base64");
+        } catch {
+          throw new BadRequestException("signedTxBase64 is invalid");
+        }
       }
-    } else {
-      let signedTxHex: string;
-      const stripped = signedTxInput.startsWith("0x") ? signedTxInput.slice(2) : signedTxInput.trim();
+
+      const stripped = input.startsWith("0x") ? input.slice(2) : input.trim();
       let parsed: unknown = stripped;
       try {
         if (stripped.startsWith("{")) parsed = JSON.parse(stripped) as Record<string, unknown>;
       } catch {
         parsed = stripped;
       }
-      const str = typeof parsed === "object" && parsed !== null
-        ? (parsed as Record<string, unknown>).signedTransaction
-          ?? (parsed as Record<string, unknown>).cborTx
-          ?? (parsed as Record<string, unknown>).cbor
-          ?? (parsed as Record<string, unknown>).tx
-          ?? (parsed as Record<string, unknown>).transaction
-          ?? stripped
+
+      const pickSignedField = (obj: Record<string, unknown>): unknown =>
+        obj.signedTransaction ??
+        obj.cborTx ??
+        obj.cbor ??
+        obj.tx ??
+        obj.transaction ??
+        stripped;
+
+      const raw = typeof parsed === "object" && parsed !== null
+        ? pickSignedField(parsed as Record<string, unknown>)
         : stripped;
-      const s = String(str);
+
+      const s = String(raw);
       const isHex = /^[0-9a-fA-F]+$/.test(s) && s.length % 2 === 0;
-      if (isHex) {
-        signedTxHex = s;
-      } else {
-        try {
-          const bytes = Buffer.from(s, "base64");
-          signedTxHex = Buffer.from(bytes).toString("hex");
-        } catch {
-          throw new BadRequestException("signedTx must be hex or base64");
-        }
+      if (isHex) return Buffer.from(s, "hex");
+      try {
+        return Buffer.from(s, "base64");
+      } catch {
+        throw new BadRequestException("signedTx must be hex or base64");
       }
-      cborBuffer = Buffer.from(signedTxHex, "hex");
-    }
+    };
+
+    const cborBuffer = toCborBuffer(signedTxInput, fromBase64);
     const first = cborBuffer[0];
     const isCborList = first >= 0x80 && first <= 0x9f;
     const isCborListLong = first === 0x98 && cborBuffer.length > 1;
@@ -415,8 +398,8 @@ export class ProductService {
     if (deleteBatchOnSuccess?.assetName?.trim()) {
       try {
         await this.productRepository.deleteBatch(deleteBatchOnSuccess.assetName.trim());
-    } catch {
-    }
+      } catch {
+      }
     }
     return { txHash };
   }

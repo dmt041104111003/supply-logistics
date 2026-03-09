@@ -15,6 +15,38 @@ import {
   SubmitTxDto,
 } from "./dto/product.dto";
 
+function assertChangeAddressAndAssetName(body: { changeAddress?: string; assetName?: string }) {
+  if (!body.changeAddress || !body.assetName) {
+    throw new BadRequestException("Missing changeAddress or assetName");
+  }
+}
+
+function assertMetadataOrRequiredFields(body: {
+  metadata?: Record<string, string>;
+  name?: string;
+  image?: string;
+  receivers?: unknown[];
+  receiverLocations?: string;
+  receiverCoordinates?: string;
+  minterLocation?: string;
+  minterCoordinates?: string;
+}) {
+  const missingRequired =
+    !body.name ||
+    !body.image ||
+    !(Array.isArray(body.receivers) && body.receivers.length) ||
+    !body.receiverLocations ||
+    !body.receiverCoordinates ||
+    !body.minterLocation ||
+    !body.minterCoordinates;
+
+  if (!body.metadata && missingRequired) {
+    throw new BadRequestException(
+      "Missing metadata or (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)",
+    );
+  }
+}
+
 @Controller("product")
 export class ProductController {
   constructor(
@@ -39,24 +71,10 @@ export class ProductController {
   @Roles("ENTERPRISE")
   async mint(
     @Body() body: MintProductDto,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() _user: AuthUser,
   ): Promise<{ unsignedTx: string; policyId?: string }> {
-    if (!body.changeAddress || !body.assetName) {
-      throw new BadRequestException("Missing changeAddress or assetName");
-    }
-    if (!body.metadata && (
-      !body.name ||
-      !body.image ||
-      !body.receivers?.length ||
-      !body.receiverLocations ||
-      !body.receiverCoordinates ||
-      !body.minterLocation ||
-      !body.minterCoordinates
-    )) {
-      throw new BadRequestException(
-        "Missing metadata or (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)",
-      );
-    }
+    assertChangeAddressAndAssetName(body);
+    assertMetadataOrRequiredFields(body);
     return this.product.mint({
       changeAddress: body.changeAddress,
       assetName: body.assetName,
@@ -81,24 +99,10 @@ export class ProductController {
   @Roles("ENTERPRISE")
   async update(
     @Body() body: UpdateProductDto,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() _user: AuthUser,
   ): Promise<{ unsignedTx: string }> {
-    if (!body.changeAddress || !body.assetName) {
-      throw new BadRequestException("Missing changeAddress or assetName");
-    }
-    if (!body.metadata && (
-      !body.name ||
-      !body.image ||
-      !body.receivers?.length ||
-      !body.receiverLocations ||
-      !body.receiverCoordinates ||
-      !body.minterLocation ||
-      !body.minterCoordinates
-    )) {
-      throw new BadRequestException(
-        "Missing metadata or (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)",
-      );
-    }
+    assertChangeAddressAndAssetName(body);
+    assertMetadataOrRequiredFields(body);
     return this.product.update({
       changeAddress: body.changeAddress,
       assetName: body.assetName,
@@ -123,11 +127,9 @@ export class ProductController {
   @Roles("ENTERPRISE")
   async revoke(
     @Body() body: RevokeProductDto,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() _user: AuthUser,
   ): Promise<{ unsignedTx: string }> {
-    if (!body.changeAddress || !body.assetName) {
-      throw new BadRequestException("Missing changeAddress or assetName");
-    }
+    assertChangeAddressAndAssetName(body);
     return this.product.revoke({
       changeAddress: body.changeAddress,
       assetName: body.assetName,
@@ -141,9 +143,7 @@ export class ProductController {
   async burn(
     @Body() body: BurnProductDto,
   ): Promise<{ unsignedTx: string }> {
-    if (!body.changeAddress || !body.assetName) {
-      throw new BadRequestException("Missing changeAddress or assetName");
-    }
+    assertChangeAddressAndAssetName(body);
     return this.product.burn({
       changeAddress: body.changeAddress,
       assetName: body.assetName,
@@ -159,7 +159,7 @@ export class ProductController {
   @Roles("ENTERPRISE")
   async mintConfirm(
     @Body() body: MintConfirmDto,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() _user: AuthUser,
   ): Promise<{ ok: boolean }> {
     if (!body.txHash || !body.assetName || !body.name || body.minterProfileId == null) {
       throw new BadRequestException("Missing txHash, assetName, name or minterProfileId");
@@ -187,7 +187,7 @@ export class ProductController {
   @Roles("ENTERPRISE")
   async updateConfirm(
     @Body() body: UpdateConfirmDto,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() _user: AuthUser,
   ): Promise<{ ok: boolean }> {
     if (!body.txHash || !body.assetName || body.profileId == null) {
       throw new BadRequestException("Missing txHash, assetName or profileId");

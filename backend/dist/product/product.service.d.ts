@@ -21,6 +21,7 @@ export declare class ProductService {
         canUpdate: boolean;
     })[]>;
     private getCanUpdate;
+    private buildMetadataOrThrow;
     listRoadmap(batchId: string): Promise<{
         stepIndex: number;
         toAddress: string | null;

@@ -164,6 +164,48 @@ export async function getWalletChangeAddress(): Promise<string> {
   return normalizeWalletAddress(raw, networkId);
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function hexToBase64(hex: string): string {
+  const clean = hex.trim().startsWith('0x') ? hex.trim().slice(2) : hex.trim();
+  const bin = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < clean.length; i += 2) {
+    bin[i / 2] = parseInt(clean.slice(i, i + 2), 16) & 0xff;
+  }
+  return bytesToBase64(bin);
+}
+
+function extractSignedTxHex(rawSigned: unknown): string {
+  if (!rawSigned) {
+    throw new Error('Wallet failed to sign transaction.');
+  }
+  if (typeof rawSigned === 'string') {
+    return rawSigned;
+  }
+  if (Array.isArray(rawSigned)) {
+    let hex = '';
+    for (let i = 0; i < rawSigned.length; i++) {
+      const b = rawSigned[i] & 0xff;
+      hex += (b >>> 4).toString(16) + (b & 0x0f).toString(16);
+    }
+    return hex;
+  }
+  if (rawSigned && typeof rawSigned === 'object') {
+    const v =
+      (rawSigned as any).signedTransaction ??
+      (rawSigned as any).cborTx ??
+      (rawSigned as any).tx ??
+      (rawSigned as any).cbor;
+    if (typeof v !== 'string') throw new Error('Wallet returned unexpected sign format.');
+    return v;
+  }
+  throw new Error('Wallet returned unexpected sign format.');
+}
+
 export async function signAndSubmitWithEternl(
   unsignedTx: string,
   opts?: { deleteBatchOnSuccess?: { assetName: string; action: 'burn222' | 'burnRef100' } },
@@ -183,38 +225,14 @@ export async function signAndSubmitWithEternl(
   }
 
   const rawSigned = await (api as any).signTx(unsignedTx, true);
-  if (!rawSigned) {
-    throw new Error('Wallet failed to sign transaction.');
-  }
-  let signedTx: string;
-  if (typeof rawSigned === 'string') {
-    signedTx = rawSigned;
-  } else if (Array.isArray(rawSigned)) {
-    let hex = '';
-    for (let i = 0; i < rawSigned.length; i++) {
-      const b = rawSigned[i] & 0xff;
-      hex += (b >>> 4).toString(16) + (b & 0x0f).toString(16);
-    }
-    signedTx = hex;
-  } else if (rawSigned && typeof rawSigned === 'object') {
-    const v = (rawSigned as any).signedTransaction ?? (rawSigned as any).cborTx ?? (rawSigned as any).tx ?? (rawSigned as any).cbor;
-    if (typeof v !== 'string') throw new Error('Wallet returned unexpected sign format.');
-    signedTx = v;
-  } else {
-    throw new Error('Wallet returned unexpected sign format.');
-  }
+  const signedTx = extractSignedTxHex(rawSigned);
 
   if (typeof (api as any).submitTx === 'function') {
     const txHash = await (api as any).submitTx(signedTx);
     if (txHash && typeof txHash === 'string') return txHash;
   }
 
-  const hex = signedTx;
-  const bin = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) bin[i / 2] = parseInt(hex.slice(i, i + 2), 16) & 0xff;
-  let binary = '';
-  for (let i = 0; i < bin.length; i++) binary += String.fromCharCode(bin[i]);
-  const signedTxBase64 = btoa(binary);
+  const signedTxBase64 = hexToBase64(signedTx);
 
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:3000';
   const res = await fetch(`${backendUrl}/product/submit`, {
@@ -252,32 +270,7 @@ export async function signTxPartial(unsignedTx: string): Promise<string> {
   }
 
   const rawSigned = await (api as any).signTx(unsignedTx, true);
-  if (!rawSigned) {
-    throw new Error('Wallet failed to sign transaction.');
-  }
-  let signedHex: string;
-  if (typeof rawSigned === 'string') {
-    signedHex = rawSigned;
-  } else if (Array.isArray(rawSigned)) {
-    let hex = '';
-    for (let i = 0; i < rawSigned.length; i++) {
-      const b = rawSigned[i] & 0xff;
-      hex += (b >>> 4).toString(16) + (b & 0x0f).toString(16);
-    }
-    signedHex = hex;
-  } else if (rawSigned && typeof rawSigned === 'object') {
-    const v =
-      (rawSigned as any).signedTransaction ??
-      (rawSigned as any).cborTx ??
-      (rawSigned as any).tx ??
-      (rawSigned as any).cbor;
-    if (typeof v !== 'string') {
-      throw new Error('Wallet returned unexpected sign format.');
-    }
-    signedHex = v;
-  } else {
-    throw new Error('Wallet returned unexpected sign format.');
-  }
+  const signedHex = extractSignedTxHex(rawSigned);
   const inputLen = unsignedTx.trim().replace(/^0x/, '').length;
   const outLen = signedHex.trim().replace(/^0x/, '').length;
   if (outLen < inputLen * 0.6 && inputLen > 500) {
@@ -336,16 +329,7 @@ export async function submitSignedTxHex(
     if (txHash && typeof txHash === 'string') return txHash;
   }
 
-  const hex = signedTxHex.trim().startsWith('0x')
-    ? signedTxHex.trim().slice(2)
-    : signedTxHex.trim();
-  const bin = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bin[i / 2] = parseInt(hex.slice(i, i + 2), 16) & 0xff;
-  }
-  let binary = '';
-  for (let i = 0; i < bin.length; i++) binary += String.fromCharCode(bin[i]);
-  const signedTxBase64 = btoa(binary);
+  const signedTxBase64 = hexToBase64(signedTxHex);
 
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:3000';
   const res = await fetch(`${backendUrl}/product/submit`, {

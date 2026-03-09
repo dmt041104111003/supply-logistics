@@ -66,6 +66,41 @@ let ProductService = class ProductService {
             return false;
         }
     }
+    buildMetadataOrThrow(params) {
+        var _a, _b;
+        if (params.metadata) {
+            const out = Object.assign({}, params.metadata);
+            if ((_a = params.certificate) === null || _a === void 0 ? void 0 : _a.trim())
+                out.certificate = params.certificate.trim();
+            return out;
+        }
+        if (!params.name ||
+            !params.image ||
+            !((_b = params.receivers) === null || _b === void 0 ? void 0 : _b.length) ||
+            !params.receiverLocations ||
+            !params.receiverCoordinates ||
+            !params.minterLocation ||
+            !params.minterCoordinates) {
+            throw new common_1.BadRequestException("Need metadata or all of (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)");
+        }
+        const addrObj = (0, core_1.deserializeAddress)(params.changeAddress);
+        const receiversPk = params.receivers.map((addr) => (0, core_1.resolvePaymentKeyHash)(addr)).join(",");
+        return (0, product_helpers_1.buildMetadata)({
+            pk: addrObj.pubKeyHash,
+            receivers: receiversPk,
+            receiver_locations: params.receiverLocations,
+            receiver_coordinates: params.receiverCoordinates,
+            minter_location: params.minterLocation,
+            minter_coordinates: params.minterCoordinates,
+            name: params.name,
+            image: params.image,
+            properties: params.propertiesJson,
+            standard: "Traceability-v1",
+            minter_address: params.changeAddress,
+            receiver_addresses: params.receivers.join(","),
+            certificate: params.certificate,
+        });
+    }
     async listRoadmap(batchId) {
         var _a;
         const batch = await this.productRepository.findBatchByCode(batchId.trim());
@@ -83,93 +118,25 @@ let ProductService = class ProductService {
         });
     }
     async mint(params) {
-        var _a, _b, _c, _d;
-        const contract = this.createContract(params.changeAddress, {
-            walletUtxos: params.walletUtxos,
-            utxoAddresses: params.utxoAddresses,
-        });
-        let metadata;
-        let receiver;
-        if (params.metadata) {
-            metadata = Object.assign({}, params.metadata);
-            if ((_a = params.certificate) === null || _a === void 0 ? void 0 : _a.trim())
-                metadata.certificate = params.certificate.trim();
-            receiver = (_b = params.receiver) !== null && _b !== void 0 ? _b : params.changeAddress;
-        }
-        else {
-            if (!params.name ||
-                !params.image ||
-                !((_c = params.receivers) === null || _c === void 0 ? void 0 : _c.length) ||
-                !params.receiverLocations ||
-                !params.receiverCoordinates ||
-                !params.minterLocation ||
-                !params.minterCoordinates) {
-                throw new common_1.BadRequestException("Need metadata or all of (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)");
-            }
-            const addrObj = (0, core_1.deserializeAddress)(params.changeAddress);
-            const receiversPk = params.receivers.map((addr) => (0, core_1.resolvePaymentKeyHash)(addr)).join(",");
-            metadata = (0, product_helpers_1.buildMetadata)({
-                pk: addrObj.pubKeyHash,
-                receivers: receiversPk,
-                receiver_locations: params.receiverLocations,
-                receiver_coordinates: params.receiverCoordinates,
-                minter_location: params.minterLocation,
-                minter_coordinates: params.minterCoordinates,
-                name: params.name,
-                image: params.image,
-                properties: params.propertiesJson,
-                standard: "Traceability-v1",
-                minter_address: params.changeAddress,
-                receiver_addresses: params.receivers.join(","),
-            });
-            receiver = params.changeAddress;
-        }
-        const unsignedTx = await contract.mint([
-            { assetName: params.assetName, metadata, quantity: "1", receiver },
-        ]);
-        const policyId = (_d = contract.policyId) !== null && _d !== void 0 ? _d : undefined;
-        return { unsignedTx, policyId };
-    }
-    async update(params) {
         var _a, _b;
         const contract = this.createContract(params.changeAddress, {
             walletUtxos: params.walletUtxos,
             utxoAddresses: params.utxoAddresses,
         });
-        let metadata;
-        if (params.metadata) {
-            metadata = Object.assign({}, params.metadata);
-            if ((_a = params.certificate) === null || _a === void 0 ? void 0 : _a.trim())
-                metadata.certificate = params.certificate.trim();
-        }
-        else {
-            if (!params.name ||
-                !params.image ||
-                !((_b = params.receivers) === null || _b === void 0 ? void 0 : _b.length) ||
-                !params.receiverLocations ||
-                !params.receiverCoordinates ||
-                !params.minterLocation ||
-                !params.minterCoordinates) {
-                throw new common_1.BadRequestException("Need metadata or all of (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)");
-            }
-            const addrObj = (0, core_1.deserializeAddress)(params.changeAddress);
-            const receiversPk = params.receivers.map((addr) => (0, core_1.resolvePaymentKeyHash)(addr)).join(",");
-            metadata = (0, product_helpers_1.buildMetadata)({
-                pk: addrObj.pubKeyHash,
-                receivers: receiversPk,
-                receiver_locations: params.receiverLocations,
-                receiver_coordinates: params.receiverCoordinates,
-                minter_location: params.minterLocation,
-                minter_coordinates: params.minterCoordinates,
-                name: params.name,
-                image: params.image,
-                properties: params.propertiesJson,
-                standard: "Traceability-v1",
-                minter_address: params.changeAddress,
-                receiver_addresses: params.receivers.join(","),
-                certificate: params.certificate,
-            });
-        }
+        const metadata = this.buildMetadataOrThrow(params);
+        const receiver = params.metadata ? ((_a = params.receiver) !== null && _a !== void 0 ? _a : params.changeAddress) : params.changeAddress;
+        const unsignedTx = await contract.mint([
+            { assetName: params.assetName, metadata, quantity: "1", receiver },
+        ]);
+        const policyId = (_b = contract.policyId) !== null && _b !== void 0 ? _b : undefined;
+        return { unsignedTx, policyId };
+    }
+    async update(params) {
+        const contract = this.createContract(params.changeAddress, {
+            walletUtxos: params.walletUtxos,
+            utxoAddresses: params.utxoAddresses,
+        });
+        const metadata = this.buildMetadataOrThrow(params);
         const unsignedTx = await contract.update([
             { assetName: params.assetName, metadata, txHash: params.txHash },
         ]);
@@ -278,46 +245,44 @@ let ProductService = class ProductService {
         return this.warehouse.addToWarehouse(profileId, batchId);
     }
     async submitSignedTx(signedTxInput, fromBase64, deleteBatchOnSuccess) {
-        var _a, _b, _c, _d, _e, _f;
-        let cborBuffer;
-        if (fromBase64) {
-            try {
-                cborBuffer = Buffer.from(signedTxInput, "base64");
+        var _a;
+        const toCborBuffer = (input, isBase64) => {
+            if (isBase64) {
+                try {
+                    return Buffer.from(input, "base64");
+                }
+                catch (_a) {
+                    throw new common_1.BadRequestException("signedTxBase64 is invalid");
+                }
             }
-            catch (_g) {
-                throw new common_1.BadRequestException("signedTxBase64 is invalid");
-            }
-        }
-        else {
-            let signedTxHex;
-            const stripped = signedTxInput.startsWith("0x") ? signedTxInput.slice(2) : signedTxInput.trim();
+            const stripped = input.startsWith("0x") ? input.slice(2) : input.trim();
             let parsed = stripped;
             try {
                 if (stripped.startsWith("{"))
                     parsed = JSON.parse(stripped);
             }
-            catch (_h) {
+            catch (_b) {
                 parsed = stripped;
             }
-            const str = typeof parsed === "object" && parsed !== null
-                ? (_e = (_d = (_c = (_b = (_a = parsed.signedTransaction) !== null && _a !== void 0 ? _a : parsed.cborTx) !== null && _b !== void 0 ? _b : parsed.cbor) !== null && _c !== void 0 ? _c : parsed.tx) !== null && _d !== void 0 ? _d : parsed.transaction) !== null && _e !== void 0 ? _e : stripped
+            const pickSignedField = (obj) => {
+                var _a, _b, _c, _d, _e;
+                return (_e = (_d = (_c = (_b = (_a = obj.signedTransaction) !== null && _a !== void 0 ? _a : obj.cborTx) !== null && _b !== void 0 ? _b : obj.cbor) !== null && _c !== void 0 ? _c : obj.tx) !== null && _d !== void 0 ? _d : obj.transaction) !== null && _e !== void 0 ? _e : stripped;
+            };
+            const raw = typeof parsed === "object" && parsed !== null
+                ? pickSignedField(parsed)
                 : stripped;
-            const s = String(str);
+            const s = String(raw);
             const isHex = /^[0-9a-fA-F]+$/.test(s) && s.length % 2 === 0;
-            if (isHex) {
-                signedTxHex = s;
+            if (isHex)
+                return Buffer.from(s, "hex");
+            try {
+                return Buffer.from(s, "base64");
             }
-            else {
-                try {
-                    const bytes = Buffer.from(s, "base64");
-                    signedTxHex = Buffer.from(bytes).toString("hex");
-                }
-                catch (_j) {
-                    throw new common_1.BadRequestException("signedTx must be hex or base64");
-                }
+            catch (_c) {
+                throw new common_1.BadRequestException("signedTx must be hex or base64");
             }
-            cborBuffer = Buffer.from(signedTxHex, "hex");
-        }
+        };
+        const cborBuffer = toCborBuffer(signedTxInput, fromBase64);
         const first = cborBuffer[0];
         const isCborList = first >= 0x80 && first <= 0x9f;
         const isCborListLong = first === 0x98 && cborBuffer.length > 1;
@@ -325,11 +290,11 @@ let ProductService = class ProductService {
             throw new common_1.BadRequestException(`signedTx is not valid CBOR tx (first byte 0x${first.toString(16).padStart(2, "0")}, length ${cborBuffer.length}). Wallet may return a different format.`);
         }
         const txHash = await this.cardano.blockfrostFetcher.submitTx(cborBuffer);
-        if ((_f = deleteBatchOnSuccess === null || deleteBatchOnSuccess === void 0 ? void 0 : deleteBatchOnSuccess.assetName) === null || _f === void 0 ? void 0 : _f.trim()) {
+        if ((_a = deleteBatchOnSuccess === null || deleteBatchOnSuccess === void 0 ? void 0 : deleteBatchOnSuccess.assetName) === null || _a === void 0 ? void 0 : _a.trim()) {
             try {
                 await this.productRepository.deleteBatch(deleteBatchOnSuccess.assetName.trim());
             }
-            catch (_k) {
+            catch (_b) {
             }
         }
         return { txHash };

@@ -22,23 +22,23 @@ export declare class ProductController {
             canUpdate: boolean;
         }[];
     }>;
-    mint(body: MintProductDto, user: AuthUser): Promise<{
+    mint(body: MintProductDto, _user: AuthUser): Promise<{
         unsignedTx: string;
         policyId?: string;
     }>;
-    update(body: UpdateProductDto, user: AuthUser): Promise<{
+    update(body: UpdateProductDto, _user: AuthUser): Promise<{
         unsignedTx: string;
     }>;
-    revoke(body: RevokeProductDto, user: AuthUser): Promise<{
+    revoke(body: RevokeProductDto, _user: AuthUser): Promise<{
         unsignedTx: string;
     }>;
     burn(body: BurnProductDto): Promise<{
         unsignedTx: string;
     }>;
-    mintConfirm(body: MintConfirmDto, user: AuthUser): Promise<{
+    mintConfirm(body: MintConfirmDto, _user: AuthUser): Promise<{
         ok: boolean;
     }>;
-    updateConfirm(body: UpdateConfirmDto, user: AuthUser): Promise<{
+    updateConfirm(body: UpdateConfirmDto, _user: AuthUser): Promise<{
         ok: boolean;
     }>;
     submit(body: SubmitTxDto): Promise<{

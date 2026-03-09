@@ -20,6 +20,23 @@ const roles_guard_1 = require("../auth/guards/roles.guard");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const product_dto_1 = require("./dto/product.dto");
+function assertChangeAddressAndAssetName(body) {
+    if (!body.changeAddress || !body.assetName) {
+        throw new common_1.BadRequestException("Missing changeAddress or assetName");
+    }
+}
+function assertMetadataOrRequiredFields(body) {
+    const missingRequired = !body.name ||
+        !body.image ||
+        !(Array.isArray(body.receivers) && body.receivers.length) ||
+        !body.receiverLocations ||
+        !body.receiverCoordinates ||
+        !body.minterLocation ||
+        !body.minterCoordinates;
+    if (!body.metadata && missingRequired) {
+        throw new common_1.BadRequestException("Missing metadata or (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)");
+    }
+}
 let ProductController = class ProductController {
     constructor(product) {
         this.product = product;
@@ -28,20 +45,9 @@ let ProductController = class ProductController {
         const items = await this.product.listBatches(user.profileId);
         return { total: items.length, items };
     }
-    async mint(body, user) {
-        var _a;
-        if (!body.changeAddress || !body.assetName) {
-            throw new common_1.BadRequestException("Missing changeAddress or assetName");
-        }
-        if (!body.metadata && (!body.name ||
-            !body.image ||
-            !((_a = body.receivers) === null || _a === void 0 ? void 0 : _a.length) ||
-            !body.receiverLocations ||
-            !body.receiverCoordinates ||
-            !body.minterLocation ||
-            !body.minterCoordinates)) {
-            throw new common_1.BadRequestException("Missing metadata or (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)");
-        }
+    async mint(body, _user) {
+        assertChangeAddressAndAssetName(body);
+        assertMetadataOrRequiredFields(body);
         return this.product.mint({
             changeAddress: body.changeAddress,
             assetName: body.assetName,
@@ -60,20 +66,9 @@ let ProductController = class ProductController {
             utxoAddresses: body.utxoAddresses,
         });
     }
-    async update(body, user) {
-        var _a;
-        if (!body.changeAddress || !body.assetName) {
-            throw new common_1.BadRequestException("Missing changeAddress or assetName");
-        }
-        if (!body.metadata && (!body.name ||
-            !body.image ||
-            !((_a = body.receivers) === null || _a === void 0 ? void 0 : _a.length) ||
-            !body.receiverLocations ||
-            !body.receiverCoordinates ||
-            !body.minterLocation ||
-            !body.minterCoordinates)) {
-            throw new common_1.BadRequestException("Missing metadata or (name, image, receivers, receiverLocations, receiverCoordinates, minterLocation, minterCoordinates)");
-        }
+    async update(body, _user) {
+        assertChangeAddressAndAssetName(body);
+        assertMetadataOrRequiredFields(body);
         return this.product.update({
             changeAddress: body.changeAddress,
             assetName: body.assetName,
@@ -92,10 +87,8 @@ let ProductController = class ProductController {
             utxoAddresses: body.utxoAddresses,
         });
     }
-    async revoke(body, user) {
-        if (!body.changeAddress || !body.assetName) {
-            throw new common_1.BadRequestException("Missing changeAddress or assetName");
-        }
+    async revoke(body, _user) {
+        assertChangeAddressAndAssetName(body);
         return this.product.revoke({
             changeAddress: body.changeAddress,
             assetName: body.assetName,
@@ -105,9 +98,7 @@ let ProductController = class ProductController {
         });
     }
     async burn(body) {
-        if (!body.changeAddress || !body.assetName) {
-            throw new common_1.BadRequestException("Missing changeAddress or assetName");
-        }
+        assertChangeAddressAndAssetName(body);
         return this.product.burn({
             changeAddress: body.changeAddress,
             assetName: body.assetName,
@@ -117,7 +108,7 @@ let ProductController = class ProductController {
             utxoAddresses: body.utxoAddresses,
         });
     }
-    async mintConfirm(body, user) {
+    async mintConfirm(body, _user) {
         var _a;
         if (!body.txHash || !body.assetName || !body.name || body.minterProfileId == null) {
             throw new common_1.BadRequestException("Missing txHash, assetName, name or minterProfileId");
@@ -139,7 +130,7 @@ let ProductController = class ProductController {
         });
         return { ok: true };
     }
-    async updateConfirm(body, user) {
+    async updateConfirm(body, _user) {
         if (!body.txHash || !body.assetName || body.profileId == null) {
             throw new common_1.BadRequestException("Missing txHash, assetName or profileId");
         }
