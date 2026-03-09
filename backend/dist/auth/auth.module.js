@@ -9,37 +9,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_module_1 = require("../core/config/config.module");
+const prisma_module_1 = require("../prisma/prisma.module");
 const auth_service_1 = require("./auth.service");
 const auth_controller_1 = require("./auth.controller");
-const auth_repository_1 = require("./domain/auth.repository");
-const prisma_auth_repository_1 = require("./infra/prisma-auth.repository");
-const nonce_store_port_1 = require("./domain/nonce-store.port");
-const in_memory_nonce_store_1 = require("./infra/in-memory-nonce.store");
-const generate_nonce_use_case_1 = require("./application/use-cases/generate-nonce.use-case");
-const verify_and_issue_token_use_case_1 = require("./application/use-cases/verify-and-issue-token.use-case");
-const create_profile_and_issue_token_use_case_1 = require("./application/use-cases/create-profile-and-issue-token.use-case");
+const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
+const roles_guard_1 = require("./guards/roles.guard");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
-        imports: [config_module_1.ConfigModule],
+        imports: [config_module_1.ConfigModule, prisma_module_1.PrismaModule],
         providers: [
             auth_service_1.AuthService,
-            {
-                provide: auth_repository_1.AUTH_REPOSITORY,
-                useClass: prisma_auth_repository_1.PrismaAuthRepository,
-            },
-            {
-                provide: nonce_store_port_1.NONCE_STORE,
-                useClass: in_memory_nonce_store_1.InMemoryNonceStore,
-            },
-            generate_nonce_use_case_1.GenerateNonceUseCase,
-            verify_and_issue_token_use_case_1.VerifyAndIssueTokenUseCase,
-            create_profile_and_issue_token_use_case_1.CreateProfileAndIssueTokenUseCase,
+            jwt_auth_guard_1.JwtAuthGuard,
+            roles_guard_1.RolesGuard,
         ],
         controllers: [auth_controller_1.AuthController],
-        exports: [auth_service_1.AuthService],
+        exports: [auth_service_1.AuthService, jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard],
     })
 ], AuthModule);
 //# sourceMappingURL=auth.module.js.map

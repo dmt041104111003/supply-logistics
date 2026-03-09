@@ -84,9 +84,12 @@ export default function ProductsPage() {
       setProducts([]);
       return;
     }
-    const res = await fetch(`${BACKEND_URL}/product/batches?token=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${BACKEND_URL}/product/batches`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
     });
     const data = await res.json();
     if (!res.ok) {
@@ -224,7 +227,9 @@ export default function ProductsPage() {
       : null;
     const token = cookie ? decodeURIComponent(cookie.split('=')[1] ?? '') : '';
     if (!token) return [];
-    const res = await fetch(`${BACKEND_URL}/profile/profiles?token=${encodeURIComponent(token)}`);
+    const res = await fetch(`${BACKEND_URL}/profile/profiles`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (!res.ok) return [];
     const data = await res.json();
     const list = Array.isArray(data) ? (data as ProfileOption[]) : [];
@@ -350,7 +355,7 @@ export default function ProductsPage() {
       if (!token) throw new Error('Session expired. Please log in again.');
 
       const isEdit = editingId !== null;
-      const url = `${BACKEND_URL}/product/${isEdit ? 'update' : 'mint'}?token=${encodeURIComponent(token)}`;
+      const url = `${BACKEND_URL}/product/${isEdit ? 'update' : 'mint'}`;
       const body: any = {
         changeAddress,
         utxoAddresses,
@@ -372,7 +377,10 @@ export default function ProductsPage() {
 
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -385,7 +393,7 @@ export default function ProductsPage() {
       if (data?.unsignedTx) {
         const txHash = await signAndSubmitWithEternl(data.unsignedTx);
         const profileId = account.id;
-        const confirmUrl = `${BACKEND_URL}/product/${isEdit ? 'update' : 'mint'}/confirm?token=${encodeURIComponent(token)}`;
+        const confirmUrl = `${BACKEND_URL}/product/${isEdit ? 'update' : 'mint'}/confirm`;
         const confirmBody = isEdit
           ? {
               txHash,
@@ -416,7 +424,10 @@ export default function ProductsPage() {
             };
         const confirmRes = await fetch(confirmUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify(confirmBody),
         });
         if (!confirmRes.ok) {
@@ -461,9 +472,12 @@ export default function ProductsPage() {
       const token = cookie ? decodeURIComponent(cookie.split('=')[1] ?? '') : '';
       if (!token) throw new Error('Session expired. Please log in again.');
 
-      const res = await fetch(`${BACKEND_URL}/product/revoke?token=${encodeURIComponent(token)}`, {
+      const res = await fetch(`${BACKEND_URL}/product/revoke`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           changeAddress,
           utxoAddresses,

@@ -3,42 +3,35 @@ import {
   Post,
   Get,
   Param,
-  Query,
   UploadedFile,
   UseInterceptors,
   BadRequestException,
-  UnauthorizedException,
-  ForbiddenException,
+  UseGuards,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { AuthService } from "../auth/auth.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { Roles } from "../auth/decorators/roles.decorator";
+import type { AuthUser } from "../auth/types/auth-user";
 import { IpfsService } from "./ipfs.service";
-
-const ENTERPRISE_ROLE = "ENTERPRISE";
 
 @Controller("ipfs")
 export class IpfsController {
   constructor(
     private readonly ipfs: IpfsService,
-    private readonly auth: AuthService,
   ) {}
 
   @Post("upload")
   @UseInterceptors(
     FileInterceptor("file", { limits: { fileSize: 10 * 1024 * 1024 } }),
   )
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ENTERPRISE")
   async upload(
     @UploadedFile() file: { buffer: Buffer; originalname?: string; mimetype?: string } | undefined,
-    @Query("token") token?: string,
+    @CurrentUser() _user: AuthUser,
   ): Promise<{ ipfsHash: string }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    await this.auth.getProfileIdFromToken(token.trim());
-    const role = await this.auth.getProfileRoleFromToken(token.trim());
-    if ((role ?? "").toUpperCase() !== ENTERPRISE_ROLE) {
-      throw new ForbiddenException("Only ENTERPRISE can upload to IPFS.");
-    }
     if (!file || !file.buffer || file.buffer.length === 0) {
       throw new BadRequestException(
         "No file uploaded. Send multipart/form-data with 'file' field.",

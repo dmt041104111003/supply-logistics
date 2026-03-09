@@ -1,24 +1,21 @@
-import { Body, Controller, Post, Query, BadRequestException, UnauthorizedException } from "@nestjs/common";
-import { AuthService } from "../auth/auth.service";
+import { Body, Controller, Post, BadRequestException, UseGuards } from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import type { AuthUser } from "../auth/types/auth-user";
 import { UploadService } from "./upload.service";
 
 @Controller("upload")
 export class UploadController {
   constructor(
     private readonly upload: UploadService,
-    private readonly auth: AuthService,
   ) {}
 
   @Post("image")
+  @UseGuards(JwtAuthGuard)
   async uploadImage(
-    @Query("token") token?: string,
+    @CurrentUser() _user: AuthUser,
     @Body() body?: { imageDataUrl?: string; folder?: string },
   ): Promise<{ url: string }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    await this.auth.getProfileIdFromToken(token.trim());
-
     const imageDataUrl = body?.imageDataUrl;
     if (!imageDataUrl || typeof imageDataUrl !== "string" || !imageDataUrl.trim()) {
       throw new BadRequestException("imageDataUrl is required.");

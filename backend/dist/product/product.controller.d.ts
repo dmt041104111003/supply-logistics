@@ -1,11 +1,10 @@
 import { ProductService } from "./product.service";
-import { AuthService } from "../auth/auth.service";
+import type { AuthUser } from "../auth/types/auth-user";
 import { MintProductDto, UpdateProductDto, RevokeProductDto, BurnProductDto, MintConfirmDto, UpdateConfirmDto, SubmitTxDto } from "./dto/product.dto";
 export declare class ProductController {
     private readonly product;
-    private readonly auth;
-    constructor(product: ProductService, auth: AuthService);
-    listBatches(token?: string): Promise<{
+    constructor(product: ProductService);
+    listBatches(user: AuthUser): Promise<{
         total: number;
         items: {
             id: number;
@@ -23,29 +22,29 @@ export declare class ProductController {
             canUpdate: boolean;
         }[];
     }>;
-    mint(body: MintProductDto, token?: string): Promise<{
+    mint(body: MintProductDto, user: AuthUser): Promise<{
         unsignedTx: string;
         policyId?: string;
     }>;
-    update(body: UpdateProductDto, token?: string): Promise<{
+    update(body: UpdateProductDto, user: AuthUser): Promise<{
         unsignedTx: string;
     }>;
-    revoke(body: RevokeProductDto, token?: string): Promise<{
+    revoke(body: RevokeProductDto, user: AuthUser): Promise<{
         unsignedTx: string;
     }>;
     burn(body: BurnProductDto): Promise<{
         unsignedTx: string;
     }>;
-    mintConfirm(body: MintConfirmDto, token?: string): Promise<{
+    mintConfirm(body: MintConfirmDto, user: AuthUser): Promise<{
         ok: boolean;
     }>;
-    updateConfirm(body: UpdateConfirmDto, token?: string): Promise<{
+    updateConfirm(body: UpdateConfirmDto, user: AuthUser): Promise<{
         ok: boolean;
     }>;
     submit(body: SubmitTxDto): Promise<{
         txHash: string;
     }>;
-    getRoadmap(code: string | undefined, token?: string): Promise<{
+    getRoadmap(code: string | undefined, user: AuthUser): Promise<{
         items: {
             stepIndex: number;
             toAddress: string | null;

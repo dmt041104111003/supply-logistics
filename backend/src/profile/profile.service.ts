@@ -1,7 +1,6 @@
 import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import * as jwt from "jsonwebtoken";
 import { ConfigService } from "../core/config/config.service";
-import { AuthService } from "../auth/auth.service";
 import {
   PROFILE_REPOSITORY,
   ProfileRepositoryPort,
@@ -15,7 +14,6 @@ import { UploadProfileAvatarUseCase } from "./application/use-cases/upload-profi
 export class ProfileService {
   constructor(
     private readonly config: ConfigService,
-    private readonly auth: AuthService,
     @Inject(PROFILE_REPOSITORY)
     private readonly profileRepository: ProfileRepositoryPort,
     private readonly listProfilesUseCase: ListProfilesUseCase,
@@ -24,11 +22,9 @@ export class ProfileService {
     private readonly uploadProfileAvatarUseCase: UploadProfileAvatarUseCase
   ) {}
 
-  async listProfilesFromToken(token: string): Promise<
+  async listProfiles(): Promise<
     { walletAddress: string; displayName: string; location: string | null; coordinates: string | null; role: string | null }[]
   > {
-    await this.auth.getProfileIdFromToken(token);
-
     return this.listProfilesUseCase.execute();
   }
 
@@ -36,12 +32,7 @@ export class ProfileService {
     return this.listProfilesByRoleUseCase.execute(roleCode);
   }
 
-  async updateProfileFromToken(params: {
-    token: string;
-    displayName: string;
-    location?: string;
-    coordinates?: string;
-  }): Promise<{
+  async updateProfile(profileId: number, params: { displayName: string; location?: string; coordinates?: string }): Promise<{
     token: string;
     profile: {
       id: number;
@@ -52,36 +43,11 @@ export class ProfileService {
       coordinates: string | null;
     };
   }> {
-    const { token, displayName, location, coordinates } = params;
-
     const secret = this.config.jwtSecret;
     if (!secret) {
       throw new UnauthorizedException("JWT_SECRET is not configured.");
     }
-
-    let payload: unknown;
-    try {
-      payload = jwt.verify(token, secret) as unknown;
-    } catch {
-      throw new UnauthorizedException("Invalid token.");
-    }
-
-    if (
-      !payload ||
-      typeof payload !== "object" ||
-      typeof (payload as any).profileId !== "number"
-    ) {
-      throw new UnauthorizedException("Invalid token payload.");
-    }
-
-    const profileId = (payload as any).profileId as number;
-
-    const profile = await this.updateProfileUseCase.execute(profileId, {
-      displayName,
-      location,
-      coordinates,
-    });
-
+    const profile = await this.updateProfileUseCase.execute(profileId, params);
     const nextPayload = {
       sub: profile.walletAddress,
       stakeAddress: profile.walletAddress,
@@ -92,9 +58,7 @@ export class ProfileService {
       location: profile.location,
       coordinates: profile.coordinates,
     };
-
     const nextToken = jwt.sign(nextPayload, secret, { expiresIn: "7d" });
-
     return {
       token: nextToken,
       profile: {
@@ -108,10 +72,7 @@ export class ProfileService {
     };
   }
 
-  async uploadProfileAvatarFromToken(params: {
-    token: string;
-    imageDataUrl: string;
-  }): Promise<{
+  async uploadAvatar(profileId: number, imageDataUrl: string): Promise<{
     token: string;
     profile: {
       id: number;
@@ -122,35 +83,11 @@ export class ProfileService {
       coordinates: string | null;
     };
   }> {
-    const { token, imageDataUrl } = params;
-
     const secret = this.config.jwtSecret;
     if (!secret) {
       throw new UnauthorizedException("JWT_SECRET is not configured.");
     }
-
-    let payload: unknown;
-    try {
-      payload = jwt.verify(token, secret) as unknown;
-    } catch {
-      throw new UnauthorizedException("Invalid token.");
-    }
-
-    if (
-      !payload ||
-      typeof payload !== "object" ||
-      typeof (payload as any).profileId !== "number"
-    ) {
-      throw new UnauthorizedException("Invalid token payload.");
-    }
-
-    const profileId = (payload as any).profileId as number;
-
-    const profile = await this.uploadProfileAvatarUseCase.execute(
-      profileId,
-      imageDataUrl
-    );
-
+    const profile = await this.uploadProfileAvatarUseCase.execute(profileId, imageDataUrl);
     const nextPayload = {
       sub: profile.walletAddress,
       stakeAddress: profile.walletAddress,
@@ -161,9 +98,7 @@ export class ProfileService {
       location: profile.location,
       coordinates: profile.coordinates,
     };
-
     const nextToken = jwt.sign(nextPayload, secret, { expiresIn: "7d" });
-
     return {
       token: nextToken,
       profile: {

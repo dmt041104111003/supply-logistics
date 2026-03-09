@@ -1,11 +1,10 @@
-import { AuthService } from "../auth/auth.service";
+import type { AuthUser } from "../auth/types/auth-user";
 import { WarehouseService } from "./warehouse.service";
 import { WarehouseBatchIdDto } from "./dto/warehouse.dto";
 export declare class WarehouseController {
     private readonly warehouse;
-    private readonly auth;
-    constructor(warehouse: WarehouseService, auth: AuthService);
-    getMyWarehouse(token?: string): Promise<{
+    constructor(warehouse: WarehouseService);
+    getMyWarehouse(user: AuthUser): Promise<{
         items: {
             batchId: string;
             batchName: string;
@@ -16,13 +15,13 @@ export declare class WarehouseController {
             status: string;
         }[];
     }>;
-    removeItem(body: WarehouseBatchIdDto, token?: string): Promise<{
+    removeItem(body: WarehouseBatchIdDto, user: AuthUser): Promise<{
         ok: boolean;
     }>;
-    markShipped(body: WarehouseBatchIdDto, token?: string): Promise<{
+    markShipped(body: WarehouseBatchIdDto, user: AuthUser): Promise<{
         ok: boolean;
     }>;
-    getRecipientByRoadmap(batchId: string | undefined, token: string | undefined): Promise<{
+    getRecipientByRoadmap(batchId: string | undefined, user: AuthUser): Promise<{
         recipientAddress: string | null;
     }>;
 }

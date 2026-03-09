@@ -14,18 +14,14 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UploadController = void 0;
 const common_1 = require("@nestjs/common");
-const auth_service_1 = require("../auth/auth.service");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const upload_service_1 = require("./upload.service");
 let UploadController = class UploadController {
-    constructor(upload, auth) {
+    constructor(upload) {
         this.upload = upload;
-        this.auth = auth;
     }
-    async uploadImage(token, body) {
-        if (!token || typeof token !== "string" || !token.trim()) {
-            throw new common_1.UnauthorizedException("Missing or invalid token.");
-        }
-        await this.auth.getProfileIdFromToken(token.trim());
+    async uploadImage(_user, body) {
         const imageDataUrl = body === null || body === void 0 ? void 0 : body.imageDataUrl;
         if (!imageDataUrl || typeof imageDataUrl !== "string" || !imageDataUrl.trim()) {
             throw new common_1.BadRequestException("imageDataUrl is required.");
@@ -40,15 +36,15 @@ let UploadController = class UploadController {
 exports.UploadController = UploadController;
 __decorate([
     (0, common_1.Post)("image"),
-    __param(0, (0, common_1.Query)("token")),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], UploadController.prototype, "uploadImage", null);
 exports.UploadController = UploadController = __decorate([
     (0, common_1.Controller)("upload"),
-    __metadata("design:paramtypes", [upload_service_1.UploadService,
-        auth_service_1.AuthService])
+    __metadata("design:paramtypes", [upload_service_1.UploadService])
 ], UploadController);
 //# sourceMappingURL=upload.controller.js.map

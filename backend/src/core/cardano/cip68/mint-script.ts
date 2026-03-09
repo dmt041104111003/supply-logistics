@@ -3,8 +3,6 @@ import {
   deserializeAddress,
   mPubKeyAddress,
   resolveScriptHash,
-  scriptAddress,
-  serializeAddressObj,
   serializePlutusScript,
 } from "@meshsdk/core";
 import { ConfigService } from "../../config/config.service";

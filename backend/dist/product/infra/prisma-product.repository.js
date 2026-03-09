@@ -71,7 +71,7 @@ let PrismaProductRepository = class PrismaProductRepository {
         });
     }
     async findBatchByCode(code) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
         const batch = await this.prisma.productBatch.findUnique({
             where: { batchId: code },
         });
@@ -91,8 +91,6 @@ let PrismaProductRepository = class PrismaProductRepository {
             netWeightKg: (_j = batch.netWeightKg) !== null && _j !== void 0 ? _j : null,
             originSiteCode: (_k = batch.originSiteCode) !== null && _k !== void 0 ? _k : null,
             referenceUtxo: (_l = batch.referenceUtxo) !== null && _l !== void 0 ? _l : null,
-            lastUpdateTxHash: (_m = batch.lastUpdateTxHash) !== null && _m !== void 0 ? _m : null,
-            lastUpdateAt: (_o = batch.lastUpdateAt) !== null && _o !== void 0 ? _o : null,
         };
     }
     async getMinterWalletAddressByBatchCode(code) {
@@ -111,10 +109,10 @@ let PrismaProductRepository = class PrismaProductRepository {
         return typeof addr === "string" && addr.trim() ? addr.trim() : null;
     }
     async updateBatch(params) {
-        const { batchId, name, description, image, certificate, standard, expiryDate, lastUpdateTxHash, lastUpdateAt, sku, grossWeightKg, netWeightKg, originSiteCode, } = params;
+        const { batchId, name, description, image, certificate, standard, expiryDate, sku, grossWeightKg, netWeightKg, originSiteCode, } = params;
         await this.prisma.productBatch.update({
             where: { batchId },
-            data: Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, (name !== undefined && { name })), (description !== undefined && { description })), (image !== undefined && { image })), (certificate !== undefined && { certificate })), (standard !== undefined && { standard })), (expiryDate !== undefined && { expiryDate })), (lastUpdateTxHash !== undefined && { lastUpdateTxHash })), (lastUpdateAt !== undefined && { lastUpdateAt })), (sku !== undefined && { sku })), (grossWeightKg !== undefined && { grossWeightKg })), (netWeightKg !== undefined && { netWeightKg })), (originSiteCode !== undefined && { originSiteCode })),
+            data: Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, (name !== undefined && { name })), (description !== undefined && { description })), (image !== undefined && { image })), (certificate !== undefined && { certificate })), (standard !== undefined && { standard })), (expiryDate !== undefined && { expiryDate })), (sku !== undefined && { sku })), (grossWeightKg !== undefined && { grossWeightKg })), (netWeightKg !== undefined && { netWeightKg })), (originSiteCode !== undefined && { originSiteCode })),
         });
     }
     async deleteBatch(batchId) {

@@ -1,10 +1,9 @@
 import { OrderService } from "./order.service";
-import { AuthService } from "../auth/auth.service";
+import type { AuthUser } from "../auth/types/auth-user";
 import { BuildLockTxDto, BuildUnlockTxDto, ParseDatumDto, MergePartialTxDto, OrderConfirmDto, OrderCompleteDto, SavePartialTxDto } from "./dto/order.dto";
 export declare class OrderController {
     private readonly order;
-    private readonly auth;
-    constructor(order: OrderService, auth: AuthService);
+    constructor(order: OrderService);
     getScriptAddress(): {
         scriptAddress: string;
     };
@@ -28,7 +27,7 @@ export declare class OrderController {
     confirmOrder(body: OrderConfirmDto): Promise<{
         id: number;
     }>;
-    getDeliveries(token?: string): Promise<{
+    getDeliveries(user?: AuthUser): Promise<{
         deliveries: {
             id: number;
             lockTxHash: string;
@@ -46,7 +45,7 @@ export declare class OrderController {
             outAt: string | null;
         }[];
     }>;
-    savePartialTx(id: string, token: string | undefined, body: SavePartialTxDto): Promise<{
+    savePartialTx(id: string, user: AuthUser, body: SavePartialTxDto): Promise<{
         ok: boolean;
     }>;
     buildUnlockTx(body: BuildUnlockTxDto): Promise<{

@@ -15,12 +15,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrderController = void 0;
 const common_1 = require("@nestjs/common");
 const order_service_1 = require("./order.service");
-const auth_service_1 = require("../auth/auth.service");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
+const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const order_dto_1 = require("./dto/order.dto");
 let OrderController = class OrderController {
-    constructor(order, auth) {
+    constructor(order) {
         this.order = order;
-        this.auth = auth;
     }
     getScriptAddress() {
         return { scriptAddress: this.order.getScriptAddress() };
@@ -90,21 +92,14 @@ let OrderController = class OrderController {
             scriptAddress: body.scriptAddress,
         });
     }
-    async getDeliveries(token) {
-        if (!token || typeof token !== "string" || !token.trim()) {
-            throw new common_1.UnauthorizedException("Missing or invalid token.");
-        }
-        const profileId = await this.auth.getProfileIdFromToken(token.trim());
-        const deliveries = await this.order.listOrdersForProfile(profileId);
+    async getDeliveries(user) {
+        const deliveries = await this.order.listOrdersForProfile(user.profileId);
         return {
             deliveries: deliveries.map((d) => (Object.assign(Object.assign({}, d), { outAt: d.outAt ? d.outAt.toISOString() : null }))),
         };
     }
-    async savePartialTx(id, token, body) {
+    async savePartialTx(id, user, body) {
         var _a;
-        if (!token || typeof token !== "string" || !token.trim()) {
-            throw new common_1.UnauthorizedException("Missing or invalid token.");
-        }
         const deliveryId = Number(id);
         if (!Number.isInteger(deliveryId) || deliveryId < 1) {
             throw new common_1.BadRequestException("Invalid delivery id.");
@@ -112,8 +107,7 @@ let OrderController = class OrderController {
         if (!((_a = body.partialTxHex) === null || _a === void 0 ? void 0 : _a.trim())) {
             throw new common_1.BadRequestException("Missing partialTxHex.");
         }
-        const profileId = await this.auth.getProfileIdFromToken(token.trim());
-        return this.order.savePartialSignedTx(deliveryId, profileId, body.partialTxHex.trim());
+        return this.order.savePartialSignedTx(deliveryId, user.profileId, body.partialTxHex.trim());
     }
     async buildUnlockTx(body) {
         var _a, _b, _c, _d;
@@ -214,16 +208,20 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], OrderController.prototype, "confirmOrder", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("TRANSIT", "AGENT", "SHIPPER"),
     (0, common_1.Get)("deliveries"),
-    __param(0, (0, common_1.Query)("token")),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], OrderController.prototype, "getDeliveries", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("TRANSIT", "AGENT", "SHIPPER"),
     (0, common_1.Post)("deliveries/:id/save-partial-tx"),
     __param(0, (0, common_1.Param)("id")),
-    __param(1, (0, common_1.Query)("token")),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object, order_dto_1.SavePartialTxDto]),
@@ -259,7 +257,6 @@ __decorate([
 ], OrderController.prototype, "completeOrder", null);
 exports.OrderController = OrderController = __decorate([
     (0, common_1.Controller)("order"),
-    __metadata("design:paramtypes", [order_service_1.OrderService,
-        auth_service_1.AuthService])
+    __metadata("design:paramtypes", [order_service_1.OrderService])
 ], OrderController);
 //# sourceMappingURL=order.controller.js.map

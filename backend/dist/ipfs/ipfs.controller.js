@@ -15,23 +15,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.IpfsController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
-const auth_service_1 = require("../auth/auth.service");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
+const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const ipfs_service_1 = require("./ipfs.service");
-const ENTERPRISE_ROLE = "ENTERPRISE";
 let IpfsController = class IpfsController {
-    constructor(ipfs, auth) {
+    constructor(ipfs) {
         this.ipfs = ipfs;
-        this.auth = auth;
     }
-    async upload(file, token) {
-        if (!token || typeof token !== "string" || !token.trim()) {
-            throw new common_1.UnauthorizedException("Missing or invalid token.");
-        }
-        await this.auth.getProfileIdFromToken(token.trim());
-        const role = await this.auth.getProfileRoleFromToken(token.trim());
-        if ((role !== null && role !== void 0 ? role : "").toUpperCase() !== ENTERPRISE_ROLE) {
-            throw new common_1.ForbiddenException("Only ENTERPRISE can upload to IPFS.");
-        }
+    async upload(file, _user) {
         if (!file || !file.buffer || file.buffer.length === 0) {
             throw new common_1.BadRequestException("No file uploaded. Send multipart/form-data with 'file' field.");
         }
@@ -55,10 +48,12 @@ exports.IpfsController = IpfsController;
 __decorate([
     (0, common_1.Post)("upload"),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)("file", { limits: { fileSize: 10 * 1024 * 1024 } })),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ENTERPRISE"),
     __param(0, (0, common_1.UploadedFile)()),
-    __param(1, (0, common_1.Query)("token")),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], IpfsController.prototype, "upload", null);
 __decorate([
@@ -70,7 +65,6 @@ __decorate([
 ], IpfsController.prototype, "getGatewayUrl", null);
 exports.IpfsController = IpfsController = __decorate([
     (0, common_1.Controller)("ipfs"),
-    __metadata("design:paramtypes", [ipfs_service_1.IpfsService,
-        auth_service_1.AuthService])
+    __metadata("design:paramtypes", [ipfs_service_1.IpfsService])
 ], IpfsController);
 //# sourceMappingURL=ipfs.controller.js.map

@@ -96,8 +96,6 @@ let RecordProductTxUseCase = class RecordProductTxUseCase {
                 certificate: params.certificate !== undefined ? params.certificate : batch.certificate,
                 standard: (_q = params.standard) !== null && _q !== void 0 ? _q : batch.standard,
                 expiryDate: nextExpiryDate !== null && nextExpiryDate !== void 0 ? nextExpiryDate : null,
-                lastUpdateTxHash: txHash,
-                lastUpdateAt: new Date().toISOString(),
                 sku: (_s = (_r = baseProps.sku) !== null && _r !== void 0 ? _r : batch.sku) !== null && _s !== void 0 ? _s : null,
                 grossWeightKg: baseProps.grossWeightKg != null
                     ? Number(baseProps.grossWeightKg)

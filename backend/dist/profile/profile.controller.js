@@ -14,85 +14,79 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProfileController = void 0;
 const common_1 = require("@nestjs/common");
-const auth_service_1 = require("../auth/auth.service");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const profile_service_1 = require("./profile.service");
 let ProfileController = class ProfileController {
-    constructor(profileService, authService) {
+    constructor(profileService) {
         this.profileService = profileService;
-        this.authService = authService;
     }
-    async listProfiles(token) {
-        if (!token) {
-            throw new common_1.HttpException({ error: "Missing token" }, common_1.HttpStatus.BAD_REQUEST);
-        }
-        return this.profileService.listProfilesFromToken(token);
+    async listProfiles(_user) {
+        return this.profileService.listProfiles();
     }
-    async listProfilesByRole(role, token) {
+    async listProfilesByRole(_user, role) {
         if (!(role === null || role === void 0 ? void 0 : role.trim())) {
             throw new common_1.HttpException({ error: "Missing role" }, common_1.HttpStatus.BAD_REQUEST);
         }
-        if (!(token === null || token === void 0 ? void 0 : token.trim())) {
-            throw new common_1.HttpException({ error: "Missing token" }, common_1.HttpStatus.UNAUTHORIZED);
-        }
-        await this.authService.getProfileIdFromToken(token.trim());
         return this.profileService.listProfilesByRoleCode(role.trim());
     }
-    async updateProfile(body) {
-        const { token, displayName, location, coordinates } = body;
-        if (!token || !displayName) {
+    async updateProfile(body, user) {
+        const { displayName, location, coordinates } = body;
+        if (!displayName) {
             throw new common_1.HttpException({ error: "Missing profile update information" }, common_1.HttpStatus.BAD_REQUEST);
         }
-        return this.profileService.updateProfileFromToken({
-            token,
+        return this.profileService.updateProfile(user.profileId, {
             displayName,
             location,
             coordinates,
         });
     }
-    async uploadAvatar(body) {
-        const { token, imageDataUrl } = body;
-        if (!token || !imageDataUrl) {
+    async uploadAvatar(body, user) {
+        const { imageDataUrl } = body;
+        if (!imageDataUrl) {
             throw new common_1.HttpException({ error: "Missing avatar upload information" }, common_1.HttpStatus.BAD_REQUEST);
         }
-        return this.profileService.uploadProfileAvatarFromToken({
-            token,
-            imageDataUrl,
-        });
+        return this.profileService.uploadAvatar(user.profileId, imageDataUrl);
     }
 };
 exports.ProfileController = ProfileController;
 __decorate([
     (0, common_1.Get)("profiles"),
-    __param(0, (0, common_1.Query)("token")),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], ProfileController.prototype, "listProfiles", null);
 __decorate([
     (0, common_1.Get)("profiles/by-role"),
-    __param(0, (0, common_1.Query)("role")),
-    __param(1, (0, common_1.Query)("token")),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)("role")),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], ProfileController.prototype, "listProfilesByRole", null);
 __decorate([
     (0, common_1.Patch)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], ProfileController.prototype, "updateProfile", null);
 __decorate([
     (0, common_1.Post)("avatar"),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], ProfileController.prototype, "uploadAvatar", null);
 exports.ProfileController = ProfileController = __decorate([
     (0, common_1.Controller)("profile"),
-    __metadata("design:paramtypes", [profile_service_1.ProfileService,
-        auth_service_1.AuthService])
+    __metadata("design:paramtypes", [profile_service_1.ProfileService])
 ], ProfileController);
 //# sourceMappingURL=profile.controller.js.map

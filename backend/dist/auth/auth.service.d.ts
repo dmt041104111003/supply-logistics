@@ -1,17 +1,17 @@
 import { ConfigService } from "../core/config/config.service";
-import { AuthRepositoryPort } from "./domain/auth.repository";
-import { GenerateNonceUseCase } from "./application/use-cases/generate-nonce.use-case";
-import { CreateProfileAndIssueTokenParams, CreateProfileAndIssueTokenUseCase } from "./application/use-cases/create-profile-and-issue-token.use-case";
-import { VerifyAndIssueTokenParams, VerifyAndIssueTokenUseCase } from "./application/use-cases/verify-and-issue-token.use-case";
+import { PrismaService } from "../prisma/prisma.service";
 export declare class AuthService {
     private readonly config;
-    private readonly authRepository;
-    private readonly generateNonceUseCase;
-    private readonly verifyAndIssueTokenUseCase;
-    private readonly createProfileAndIssueTokenUseCase;
-    constructor(config: ConfigService, authRepository: AuthRepositoryPort, generateNonceUseCase: GenerateNonceUseCase, verifyAndIssueTokenUseCase: VerifyAndIssueTokenUseCase, createProfileAndIssueTokenUseCase: CreateProfileAndIssueTokenUseCase);
+    private readonly prisma;
+    constructor(config: ConfigService, prisma: PrismaService);
+    private readonly nonceStore;
     generateNonce(stakeAddress: string): string;
-    verifyAndIssueToken(params: VerifyAndIssueTokenParams): Promise<{
+    verifyAndIssueToken(params: {
+        stakeAddress: string;
+        nonce: string;
+        signature: string;
+        key: string;
+    }): Promise<{
         token: string;
         profile: {
             id: number;
@@ -28,7 +28,13 @@ export declare class AuthService {
             code: string;
         }[];
     }>;
-    createProfileAndIssueToken(params: CreateProfileAndIssueTokenParams): Promise<{
+    createProfileAndIssueToken(params: {
+        stakeAddress: string;
+        roleCode: string;
+        displayName: string;
+        location?: string;
+        coordinates?: string;
+    }): Promise<{
         token: string;
         profile: {
             id: number;
@@ -39,6 +45,4 @@ export declare class AuthService {
             coordinates: string | null;
         };
     }>;
-    getProfileIdFromToken(token: string): Promise<number>;
-    getProfileRoleFromToken(token: string): Promise<string>;
 }

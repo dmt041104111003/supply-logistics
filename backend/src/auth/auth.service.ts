@@ -1,34 +1,45 @@
-import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { randomBytes } from "crypto";
 import * as jwt from "jsonwebtoken";
 import { ConfigService } from "../core/config/config.service";
-import { AUTH_REPOSITORY, AuthRepositoryPort } from "./domain/auth.repository";
-import { GenerateNonceUseCase } from "./application/use-cases/generate-nonce.use-case";
-import {
-  CreateProfileAndIssueTokenParams,
-  CreateProfileAndIssueTokenUseCase,
-} from "./application/use-cases/create-profile-and-issue-token.use-case";
-import {
-  VerifyAndIssueTokenParams,
-  VerifyAndIssueTokenUseCase,
-} from "./application/use-cases/verify-and-issue-token.use-case";
+import { PrismaService } from "../prisma/prisma.service";
+import { isPaymentAddress, normalizeStakeAddress } from "./utils";
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly config: ConfigService,
-    @Inject(AUTH_REPOSITORY)
-    private readonly authRepository: AuthRepositoryPort,
-    private readonly generateNonceUseCase: GenerateNonceUseCase,
-    private readonly verifyAndIssueTokenUseCase: VerifyAndIssueTokenUseCase,
-    private readonly createProfileAndIssueTokenUseCase: CreateProfileAndIssueTokenUseCase
+    private readonly prisma: PrismaService,
   ) {}
 
+  private readonly nonceStore = new Map<
+    string,
+    { nonce: string; expMs: number }
+  >();
+
   generateNonce(stakeAddress: string): string {
-    return this.generateNonceUseCase.execute(stakeAddress);
+    const network = this.config.appNetwork === "mainnet" ? "mainnet" : "preprod";
+    const addr = normalizeStakeAddress(stakeAddress, network);
+
+    if (!isPaymentAddress(addr)) {
+      const hint =
+        addr.length > 0
+          ? ` Received: ${addr.slice(0, 30)}${addr.length > 30 ? "..." : ""}`
+          : " Received empty or invalid type.";
+      throw new BadRequestException(
+        "Address must be a payment address (addr_test1... or addr1...) or a valid hex (56, 58 or 114 chars)." +
+          hint,
+      );
+    }
+
+    const nonce = randomBytes(32).toString("hex");
+    const ttlMs = 5 * 60 * 1000;
+    this.nonceStore.set(addr, { nonce, expMs: Date.now() + ttlMs });
+    return nonce;
   }
 
   async verifyAndIssueToken(
-    params: VerifyAndIssueTokenParams
+    params: { stakeAddress: string; nonce: string; signature: string; key: string }
   ): Promise<
         | {
             token: string;
@@ -49,11 +60,86 @@ export class AuthService {
             }[];
           }
   > {
-    return this.verifyAndIssueTokenUseCase.execute(params);
+    const { stakeAddress, nonce, signature, key } = params;
+    const network = this.config.appNetwork === "mainnet" ? "mainnet" : "preprod";
+    const addr = normalizeStakeAddress(stakeAddress, network);
+
+    if (!isPaymentAddress(addr)) {
+      throw new BadRequestException(
+        "Address must be a payment address (addr_test1... or addr1...) or a valid hex (56, 58 or 114 chars).",
+      );
+    }
+
+    const item = this.nonceStore.get(addr);
+    if (!item || item.nonce !== nonce || Date.now() > item.expMs) {
+      throw new UnauthorizedException("Invalid or expired nonce.");
+    }
+    this.nonceStore.delete(addr);
+
+    if (!signature || !key) {
+      throw new UnauthorizedException("Missing signature or public key.");
+    }
+
+    await this.prisma.wallet.upsert({
+      where: { address: addr },
+      update: { lastLogin: new Date() },
+      create: { address: addr, lastLogin: new Date() },
+    });
+
+    const profile = await this.prisma.profile.findFirst({
+      where: { walletAddress: addr },
+    });
+
+    if (!profile) {
+      return {
+        needProfile: true as const,
+        roles: [
+          { id: 1, code: "ENTERPRISE" },
+          { id: 2, code: "TRANSIT" },
+          { id: 3, code: "AGENT" },
+          { id: 4, code: "SHIPPER" },
+        ],
+      };
+    }
+
+    const secret = this.config.jwtSecret;
+    if (!secret) {
+      throw new UnauthorizedException("JWT_SECRET is not configured.");
+    }
+
+    const payload = {
+      sub: addr,
+      stakeAddress: addr,
+      profileId: profile.id,
+      role: profile.roleCode,
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl,
+      location: profile.location,
+      coordinates: profile.coordinates,
+    };
+    const token = jwt.sign(payload, secret, { expiresIn: "7d" });
+
+    return {
+      token,
+      profile: {
+        id: profile.id,
+        role: profile.roleCode,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        location: profile.location ?? null,
+        coordinates: profile.coordinates ?? null,
+      },
+    };
   }
 
   async createProfileAndIssueToken(
-    params: CreateProfileAndIssueTokenParams
+    params: {
+      stakeAddress: string;
+      roleCode: string;
+      displayName: string;
+      location?: string;
+      coordinates?: string;
+    }
   ): Promise<{
     token: string;
     profile: {
@@ -65,29 +151,67 @@ export class AuthService {
       coordinates: string | null;
     };
   }> {
-    return this.createProfileAndIssueTokenUseCase.execute(params);
-  }
+    const { stakeAddress, roleCode, displayName, location, coordinates } = params;
+    const network = this.config.appNetwork === "mainnet" ? "mainnet" : "preprod";
+    const addr = normalizeStakeAddress(stakeAddress, network);
 
-  async getProfileIdFromToken(token: string): Promise<number> {
+    if (!isPaymentAddress(addr)) {
+      throw new BadRequestException(
+        "Address must be a payment address (addr_test1... or addr1...) or a valid hex (56, 58 or 114 chars).",
+      );
+    }
+
+    await this.prisma.wallet.upsert({
+      where: { address: addr },
+      update: { lastLogin: new Date() },
+      create: { address: addr, lastLogin: new Date() },
+    });
+
+    const profile = await this.prisma.profile.upsert({
+      where: { walletAddress: addr },
+      update: {
+        roleCode: roleCode.toUpperCase(),
+        displayName,
+        location: location ?? null,
+        coordinates: coordinates ?? null,
+      },
+      create: {
+        walletAddress: addr,
+        roleCode: roleCode.toUpperCase(),
+        displayName,
+        location: location ?? null,
+        coordinates: coordinates ?? null,
+      },
+    });
+
     const secret = this.config.jwtSecret;
-    if (!secret) throw new UnauthorizedException("JWT_SECRET is not configured.");
-    let payload: unknown;
-    try {
-      payload = jwt.verify(token, secret) as unknown;
-    } catch {
-      throw new UnauthorizedException("Invalid token.");
+    if (!secret) {
+      throw new UnauthorizedException("JWT_SECRET is not configured.");
     }
-    if (!payload || typeof payload !== "object" || typeof (payload as any).profileId !== "number") {
-      throw new UnauthorizedException("Invalid token payload.");
-    }
-    return (payload as any).profileId as number;
-  }
 
-  async getProfileRoleFromToken(token: string): Promise<string> {
-    const profileId = await this.getProfileIdFromToken(token);
-    const roleCode = await this.authRepository.findProfileRoleCodeById(profileId);
-    if (!roleCode) throw new UnauthorizedException("Profile or role not found.");
-    return roleCode;
+    const payload = {
+      sub: addr,
+      stakeAddress: addr,
+      profileId: profile.id,
+      role: profile.roleCode,
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl,
+      location: profile.location,
+      coordinates: profile.coordinates,
+    };
+    const token = jwt.sign(payload, secret, { expiresIn: "7d" });
+
+    return {
+      token,
+      profile: {
+        id: profile.id,
+        role: profile.roleCode,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        location: profile.location ?? null,
+        coordinates: profile.coordinates ?? null,
+      },
+    };
   }
 }
 

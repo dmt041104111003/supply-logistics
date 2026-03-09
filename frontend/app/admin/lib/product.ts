@@ -17,9 +17,9 @@ export type ProductRoadmapHop = {
 };
 
 export async function getBatchesList(token: string): Promise<BatchListItem[]> {
-  const res = await fetch(
-    `${BACKEND_URL}/product/batches?token=${encodeURIComponent(token)}`,
-  );
+  const res = await fetch(`${BACKEND_URL}/product/batches`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data?.message || data?.error || 'Failed to load batches');
@@ -86,9 +86,8 @@ export async function getProductRoadmap(
   code: string,
 ): Promise<ProductRoadmapHop[]> {
   const res = await fetch(
-    `${BACKEND_URL}/product/roadmap?code=${encodeURIComponent(
-      code.trim(),
-    )}&token=${encodeURIComponent(token)}`,
+    `${BACKEND_URL}/product/roadmap?code=${encodeURIComponent(code.trim())}`,
+    { headers: { Authorization: `Bearer ${token}` } },
   );
   const data = await res.json();
   if (!res.ok) {

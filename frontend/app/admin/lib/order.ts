@@ -174,9 +174,9 @@ export async function confirmOrder(params: {
 }
 
 export async function getDeliveries(token: string): Promise<OrderDeliveryItem[]> {
-  const res = await fetch(
-    `${BACKEND_URL}/order/deliveries?token=${encodeURIComponent(token)}`,
-  );
+  const res = await fetch(`${BACKEND_URL}/order/deliveries`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data?.message || data?.error || 'Failed to load orders');
@@ -190,11 +190,16 @@ export async function savePartialTx(
   partialTxHex: string,
 ): Promise<void> {
   const res = await fetch(
-    `${BACKEND_URL}/order/deliveries/${deliveryId}/save-partial-tx?token=${encodeURIComponent(token)}`,
+    `${BACKEND_URL}/order/deliveries/${deliveryId}/save-partial-tx`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ partialTxHex: partialTxHex.trim().replace(/^0x/, '') }),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        partialTxHex: partialTxHex.trim().replace(/^0x/, ''),
+      }),
     },
   );
   const data = await res.json();

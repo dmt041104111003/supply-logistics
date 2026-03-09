@@ -9,9 +9,10 @@ export async function uploadFileToIpfs(
   const form = new FormData();
   form.append('file', file);
   const res = await fetch(
-    `${BACKEND_URL}/ipfs/upload?token=${encodeURIComponent(token)}`,
+    `${BACKEND_URL}/ipfs/upload`,
     {
       method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
       body: form,
     },
   );

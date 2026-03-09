@@ -31,8 +31,6 @@ export interface ProductBatchSnapshot {
     netWeightKg: number | null;
     originSiteCode: string | null;
     referenceUtxo: string | null;
-    lastUpdateTxHash: string | null;
-    lastUpdateAt: Date | null;
 }
 export interface MintBatchParams {
     batchId: string;
@@ -59,8 +57,6 @@ export interface UpdateBatchParams {
     certificate?: string | null;
     standard?: string | null;
     expiryDate?: Date | string | null;
-    lastUpdateTxHash?: string | null;
-    lastUpdateAt?: Date | string | null;
     sku?: string | null;
     gtin?: string | null;
     hsCode?: string | null;

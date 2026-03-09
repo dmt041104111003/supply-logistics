@@ -142,9 +142,12 @@ export function WarehouseLockDialog({ open, item, onClose, onSuccess }: Props) {
       const token = getAuthToken();
       if (token) {
         try {
-          await fetch(`${BACKEND_URL}/warehouse/mark-shipped?token=${encodeURIComponent(token)}`, {
+          await fetch(`${BACKEND_URL}/warehouse/mark-shipped`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({ batchId: item.batchId.trim() }),
           });
         } catch {

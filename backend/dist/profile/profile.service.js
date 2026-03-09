@@ -16,54 +16,33 @@ exports.ProfileService = void 0;
 const common_1 = require("@nestjs/common");
 const jwt = require("jsonwebtoken");
 const config_service_1 = require("../core/config/config.service");
-const auth_service_1 = require("../auth/auth.service");
 const profile_repository_1 = require("./domain/profile.repository");
 const list_profiles_use_case_1 = require("./application/use-cases/list-profiles.use-case");
 const list_profiles_by_role_use_case_1 = require("./application/use-cases/list-profiles-by-role.use-case");
 const update_profile_use_case_1 = require("./application/use-cases/update-profile.use-case");
 const upload_profile_avatar_use_case_1 = require("./application/use-cases/upload-profile-avatar.use-case");
 let ProfileService = class ProfileService {
-    constructor(config, auth, profileRepository, listProfilesUseCase, listProfilesByRoleUseCase, updateProfileUseCase, uploadProfileAvatarUseCase) {
+    constructor(config, profileRepository, listProfilesUseCase, listProfilesByRoleUseCase, updateProfileUseCase, uploadProfileAvatarUseCase) {
         this.config = config;
-        this.auth = auth;
         this.profileRepository = profileRepository;
         this.listProfilesUseCase = listProfilesUseCase;
         this.listProfilesByRoleUseCase = listProfilesByRoleUseCase;
         this.updateProfileUseCase = updateProfileUseCase;
         this.uploadProfileAvatarUseCase = uploadProfileAvatarUseCase;
     }
-    async listProfilesFromToken(token) {
-        await this.auth.getProfileIdFromToken(token);
+    async listProfiles() {
         return this.listProfilesUseCase.execute();
     }
     async listProfilesByRoleCode(roleCode) {
         return this.listProfilesByRoleUseCase.execute(roleCode);
     }
-    async updateProfileFromToken(params) {
+    async updateProfile(profileId, params) {
         var _a, _b;
-        const { token, displayName, location, coordinates } = params;
         const secret = this.config.jwtSecret;
         if (!secret) {
             throw new common_1.UnauthorizedException("JWT_SECRET is not configured.");
         }
-        let payload;
-        try {
-            payload = jwt.verify(token, secret);
-        }
-        catch (_c) {
-            throw new common_1.UnauthorizedException("Invalid token.");
-        }
-        if (!payload ||
-            typeof payload !== "object" ||
-            typeof payload.profileId !== "number") {
-            throw new common_1.UnauthorizedException("Invalid token payload.");
-        }
-        const profileId = payload.profileId;
-        const profile = await this.updateProfileUseCase.execute(profileId, {
-            displayName,
-            location,
-            coordinates,
-        });
+        const profile = await this.updateProfileUseCase.execute(profileId, params);
         const nextPayload = {
             sub: profile.walletAddress,
             stakeAddress: profile.walletAddress,
@@ -87,26 +66,12 @@ let ProfileService = class ProfileService {
             },
         };
     }
-    async uploadProfileAvatarFromToken(params) {
+    async uploadAvatar(profileId, imageDataUrl) {
         var _a, _b;
-        const { token, imageDataUrl } = params;
         const secret = this.config.jwtSecret;
         if (!secret) {
             throw new common_1.UnauthorizedException("JWT_SECRET is not configured.");
         }
-        let payload;
-        try {
-            payload = jwt.verify(token, secret);
-        }
-        catch (_c) {
-            throw new common_1.UnauthorizedException("Invalid token.");
-        }
-        if (!payload ||
-            typeof payload !== "object" ||
-            typeof payload.profileId !== "number") {
-            throw new common_1.UnauthorizedException("Invalid token payload.");
-        }
-        const profileId = payload.profileId;
         const profile = await this.uploadProfileAvatarUseCase.execute(profileId, imageDataUrl);
         const nextPayload = {
             sub: profile.walletAddress,
@@ -135,9 +100,8 @@ let ProfileService = class ProfileService {
 exports.ProfileService = ProfileService;
 exports.ProfileService = ProfileService = __decorate([
     (0, common_1.Injectable)(),
-    __param(2, (0, common_1.Inject)(profile_repository_1.PROFILE_REPOSITORY)),
-    __metadata("design:paramtypes", [config_service_1.ConfigService,
-        auth_service_1.AuthService, Object, list_profiles_use_case_1.ListProfilesUseCase,
+    __param(1, (0, common_1.Inject)(profile_repository_1.PROFILE_REPOSITORY)),
+    __metadata("design:paramtypes", [config_service_1.ConfigService, Object, list_profiles_use_case_1.ListProfilesUseCase,
         list_profiles_by_role_use_case_1.ListProfilesByRoleUseCase,
         update_profile_use_case_1.UpdateProfileUseCase,
         upload_profile_avatar_use_case_1.UploadProfileAvatarUseCase])

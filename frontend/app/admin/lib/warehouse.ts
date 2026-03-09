@@ -24,10 +24,13 @@ function mapItem(i: Record<string, unknown>): WarehouseItem {
 }
 
 export async function getWarehouseItems(token: string): Promise<WarehouseItem[]> {
-  const res = await fetch(
-    `${BACKEND_URL}/warehouse?token=${encodeURIComponent(token)}`,
-    { method: 'GET', headers: { 'Content-Type': 'application/json' } },
-  );
+  const res = await fetch(`${BACKEND_URL}/warehouse`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(
@@ -43,8 +46,14 @@ export async function getLockRecipientByRoadmap(
   batchId: string,
 ): Promise<{ recipientAddress: string | null }> {
   const res = await fetch(
-    `${BACKEND_URL}/warehouse/recipient-by-roadmap?batchId=${encodeURIComponent(batchId.trim())}&token=${encodeURIComponent(token)}`,
-    { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+    `${BACKEND_URL}/warehouse/recipient-by-roadmap?batchId=${encodeURIComponent(batchId.trim())}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    },
   );
   const data = await res.json();
   if (!res.ok) {
@@ -66,10 +75,13 @@ export async function requestBurnNft(
   },
 ): Promise<{ unsignedTx: string }> {
   const res = await fetch(
-    `${BACKEND_URL}/product/burn?token=${encodeURIComponent(token)}`,
+    `${BACKEND_URL}/product/burn`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
         changeAddress: params.changeAddress,
         assetName: params.assetName,

@@ -14,107 +14,77 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WarehouseController = void 0;
 const common_1 = require("@nestjs/common");
-const auth_service_1 = require("../auth/auth.service");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
+const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const warehouse_service_1 = require("./warehouse.service");
 const warehouse_dto_1 = require("./dto/warehouse.dto");
-const WAREHOUSE_ROLES = ["ENTERPRISE", "TRANSIT", "AGENT"];
 let WarehouseController = class WarehouseController {
-    constructor(warehouse, auth) {
+    constructor(warehouse) {
         this.warehouse = warehouse;
-        this.auth = auth;
     }
-    async getMyWarehouse(token) {
-        if (!token || typeof token !== "string" || !token.trim()) {
-            throw new common_1.UnauthorizedException("Missing or invalid token.");
-        }
-        const profileId = await this.auth.getProfileIdFromToken(token.trim());
-        const role = await this.auth.getProfileRoleFromToken(token.trim());
-        if (!WAREHOUSE_ROLES.includes((role !== null && role !== void 0 ? role : "").toUpperCase())) {
-            throw new common_1.ForbiddenException("Only ENTERPRISE, TRANSIT and AGENT can access warehouse.");
-        }
-        const items = await this.warehouse.listMyWarehouseInventory(profileId);
+    async getMyWarehouse(user) {
+        const items = await this.warehouse.listMyWarehouseInventory(user.profileId);
         return { items };
     }
-    async removeItem(body, token) {
-        if (!token || typeof token !== "string" || !token.trim()) {
-            throw new common_1.UnauthorizedException("Missing or invalid token.");
-        }
-        const profileId = await this.auth.getProfileIdFromToken(token.trim());
-        const role = await this.auth.getProfileRoleFromToken(token.trim());
-        if (!WAREHOUSE_ROLES.includes((role !== null && role !== void 0 ? role : "").toUpperCase())) {
-            throw new common_1.ForbiddenException("Only ENTERPRISE, TRANSIT and AGENT can remove item from warehouse.");
-        }
+    async removeItem(body, user) {
         if (!body.batchId || typeof body.batchId !== "string" || !body.batchId.trim()) {
             throw new common_1.BadRequestException("batchId is required.");
         }
-        await this.warehouse.removeOneFromWarehouse(profileId, body.batchId.trim());
+        await this.warehouse.removeOneFromWarehouse(user.profileId, body.batchId.trim());
         return { ok: true };
     }
-    async markShipped(body, token) {
-        if (!token || typeof token !== "string" || !token.trim()) {
-            throw new common_1.UnauthorizedException("Missing or invalid token.");
-        }
-        const profileId = await this.auth.getProfileIdFromToken(token.trim());
-        const role = await this.auth.getProfileRoleFromToken(token.trim());
-        if (!WAREHOUSE_ROLES.includes((role !== null && role !== void 0 ? role : "").toUpperCase())) {
-            throw new common_1.ForbiddenException("Only ENTERPRISE, TRANSIT and AGENT can mark item as shipped.");
-        }
+    async markShipped(body, user) {
         if (!body.batchId || typeof body.batchId !== "string" || !body.batchId.trim()) {
             throw new common_1.BadRequestException("batchId is required.");
         }
-        await this.warehouse.markAsShipped(profileId, body.batchId.trim());
+        await this.warehouse.markAsShipped(user.profileId, body.batchId.trim());
         return { ok: true };
     }
-    async getRecipientByRoadmap(batchId, token) {
-        if (!token || typeof token !== "string" || !token.trim()) {
-            throw new common_1.UnauthorizedException("Missing or invalid token.");
-        }
-        const profileId = await this.auth.getProfileIdFromToken(token.trim());
-        const role = await this.auth.getProfileRoleFromToken(token.trim());
-        if (!WAREHOUSE_ROLES.includes((role !== null && role !== void 0 ? role : "").toUpperCase())) {
-            throw new common_1.ForbiddenException("Only ENTERPRISE, TRANSIT and AGENT can use recipient-by-roadmap.");
-        }
+    async getRecipientByRoadmap(batchId, user) {
         if (!batchId || typeof batchId !== "string" || !batchId.trim()) {
             return { recipientAddress: null };
         }
-        return this.warehouse.getRecipientByRoadmap(profileId, batchId.trim());
+        return this.warehouse.getRecipientByRoadmap(user.profileId, batchId.trim());
     }
 };
 exports.WarehouseController = WarehouseController;
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)("token")),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], WarehouseController.prototype, "getMyWarehouse", null);
 __decorate([
     (0, common_1.Post)("remove-item"),
     __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Query)("token")),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [warehouse_dto_1.WarehouseBatchIdDto, String]),
+    __metadata("design:paramtypes", [warehouse_dto_1.WarehouseBatchIdDto, Object]),
     __metadata("design:returntype", Promise)
 ], WarehouseController.prototype, "removeItem", null);
 __decorate([
     (0, common_1.Post)("mark-shipped"),
     __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Query)("token")),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [warehouse_dto_1.WarehouseBatchIdDto, String]),
+    __metadata("design:paramtypes", [warehouse_dto_1.WarehouseBatchIdDto, Object]),
     __metadata("design:returntype", Promise)
 ], WarehouseController.prototype, "markShipped", null);
 __decorate([
     (0, common_1.Get)("recipient-by-roadmap"),
     __param(0, (0, common_1.Query)("batchId")),
-    __param(1, (0, common_1.Query)("token")),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], WarehouseController.prototype, "getRecipientByRoadmap", null);
 exports.WarehouseController = WarehouseController = __decorate([
     (0, common_1.Controller)("warehouse"),
-    __metadata("design:paramtypes", [warehouse_service_1.WarehouseService,
-        auth_service_1.AuthService])
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)("ENTERPRISE", "TRANSIT", "AGENT"),
+    __metadata("design:paramtypes", [warehouse_service_1.WarehouseService])
 ], WarehouseController);
 //# sourceMappingURL=warehouse.controller.js.map

@@ -1,29 +1,26 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Patch, Post, Query } from "@nestjs/common";
-import { AuthService } from "../auth/auth.service";
+import { Body, Controller, Get, HttpException, HttpStatus, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import type { AuthUser } from "../auth/types/auth-user";
 import { ProfileService } from "./profile.service";
 
 @Controller("profile")
 export class ProfileController {
   constructor(
     private readonly profileService: ProfileService,
-    private readonly authService: AuthService,
   ) {}
 
   @Get("profiles")
-  async listProfiles(@Query("token") token?: string) {
-    if (!token) {
-      throw new HttpException(
-        { error: "Missing token" },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-    return this.profileService.listProfilesFromToken(token);
+  @UseGuards(JwtAuthGuard)
+  async listProfiles(@CurrentUser() _user: AuthUser) {
+    return this.profileService.listProfiles();
   }
 
   @Get("profiles/by-role")
+  @UseGuards(JwtAuthGuard)
   async listProfilesByRole(
+    @CurrentUser() _user: AuthUser,
     @Query("role") role?: string,
-    @Query("token") token?: string,
   ) {
     if (!role?.trim()) {
       throw new HttpException(
@@ -31,37 +28,30 @@ export class ProfileController {
         HttpStatus.BAD_REQUEST
       );
     }
-    if (!token?.trim()) {
-      throw new HttpException(
-        { error: "Missing token" },
-        HttpStatus.UNAUTHORIZED
-      );
-    }
-    await this.authService.getProfileIdFromToken(token.trim());
     return this.profileService.listProfilesByRoleCode(role.trim());
   }
 
   @Patch()
+  @UseGuards(JwtAuthGuard)
   async updateProfile(
     @Body()
     body: {
-      token?: string;
       displayName?: string;
       location?: string;
       coordinates?: string;
-    }
+    },
+    @CurrentUser() user: AuthUser,
   ) {
-    const { token, displayName, location, coordinates } = body;
+    const { displayName, location, coordinates } = body;
 
-    if (!token || !displayName) {
+    if (!displayName) {
       throw new HttpException(
         { error: "Missing profile update information" },
         HttpStatus.BAD_REQUEST
       );
     }
 
-    return this.profileService.updateProfileFromToken({
-      token,
+    return this.profileService.updateProfile(user.profileId, {
       displayName,
       location,
       coordinates,
@@ -69,25 +59,23 @@ export class ProfileController {
   }
 
   @Post("avatar")
+  @UseGuards(JwtAuthGuard)
   async uploadAvatar(
     @Body()
     body: {
-      token?: string;
       imageDataUrl?: string;
-    }
+    },
+    @CurrentUser() user: AuthUser,
   ) {
-    const { token, imageDataUrl } = body;
+    const { imageDataUrl } = body;
 
-    if (!token || !imageDataUrl) {
+    if (!imageDataUrl) {
       throw new HttpException(
         { error: "Missing avatar upload information" },
         HttpStatus.BAD_REQUEST
       );
     }
 
-    return this.profileService.uploadProfileAvatarFromToken({
-      token,
-      imageDataUrl,
-    });
+    return this.profileService.uploadAvatar(user.profileId, imageDataUrl);
   }
 }

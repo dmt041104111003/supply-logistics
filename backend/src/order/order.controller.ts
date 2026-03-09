@@ -6,10 +6,15 @@ import {
   Query,
   Param,
   BadRequestException,
-  UnauthorizedException,
+  ForbiddenException,
+  UseGuards,
 } from "@nestjs/common";
 import { OrderService } from "./order.service";
-import { AuthService } from "../auth/auth.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { Roles } from "../auth/decorators/roles.decorator";
+import type { AuthUser } from "../auth/types/auth-user";
 import {
   BuildLockTxDto,
   BuildUnlockTxDto,
@@ -24,7 +29,6 @@ import {
 export class OrderController {
   constructor(
     private readonly order: OrderService,
-    private readonly auth: AuthService,
   ) {}
 
   @Get("script-address")
@@ -126,9 +130,11 @@ export class OrderController {
     });
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("TRANSIT", "AGENT", "SHIPPER")
   @Get("deliveries")
   async getDeliveries(
-    @Query("token") token?: string,
+    @CurrentUser() user?: AuthUser,
   ): Promise<{
     deliveries: {
       id: number;
@@ -147,11 +153,7 @@ export class OrderController {
       outAt: string | null;
     }[];
   }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    const profileId = await this.auth.getProfileIdFromToken(token.trim());
-    const deliveries = await this.order.listOrdersForProfile(profileId);
+    const deliveries = await this.order.listOrdersForProfile(user!.profileId);
     return {
       deliveries: deliveries.map((d) => ({
         ...d,
@@ -160,15 +162,14 @@ export class OrderController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("TRANSIT", "AGENT", "SHIPPER")
   @Post("deliveries/:id/save-partial-tx")
   async savePartialTx(
     @Param("id") id: string,
-    @Query("token") token: string | undefined,
+    @CurrentUser() user: AuthUser,
     @Body() body: SavePartialTxDto,
   ): Promise<{ ok: boolean }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
     const deliveryId = Number(id);
     if (!Number.isInteger(deliveryId) || deliveryId < 1) {
       throw new BadRequestException("Invalid delivery id.");
@@ -176,8 +177,7 @@ export class OrderController {
     if (!body.partialTxHex?.trim()) {
       throw new BadRequestException("Missing partialTxHex.");
     }
-    const profileId = await this.auth.getProfileIdFromToken(token.trim());
-    return this.order.savePartialSignedTx(deliveryId, profileId, body.partialTxHex.trim());
+    return this.order.savePartialSignedTx(deliveryId, user.profileId, body.partialTxHex.trim());
   }
 
   @Post("build-unlock-tx")

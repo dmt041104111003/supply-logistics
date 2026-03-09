@@ -1,6 +1,10 @@
-import { Controller, Get, Post, Body, Query, Param, BadRequestException, UnauthorizedException, ForbiddenException } from "@nestjs/common";
+import { Controller, Get, Post, Body, Query, Param, BadRequestException, UseGuards } from "@nestjs/common";
 import { ProductService } from "./product.service";
-import { AuthService } from "../auth/auth.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { Roles } from "../auth/decorators/roles.decorator";
+import type { AuthUser } from "../auth/types/auth-user";
 import {
   MintProductDto,
   UpdateProductDto,
@@ -11,46 +15,32 @@ import {
   SubmitTxDto,
 } from "./dto/product.dto";
 
-const ENTERPRISE_ROLE = "ENTERPRISE";
-
 @Controller("product")
 export class ProductController {
   constructor(
     private readonly product: ProductService,
-    private readonly auth: AuthService,
   ) {}
 
   @Get("batches")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ENTERPRISE")
   async listBatches(
-    @Query("token") token?: string,
+    @CurrentUser() user: AuthUser,
   ): Promise<{
     total: number;
     items: { id: number; batchId: string; name: string; description: string | null; image: string | null; certificate: string | null; createdAt: Date; policyId: string | null; sku: string | null; grossWeightKg: number | null; netWeightKg: number | null; originSiteCode: string | null; canUpdate: boolean }[];
   }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    const profileId = await this.auth.getProfileIdFromToken(token.trim());
-    const role = await this.auth.getProfileRoleFromToken(token.trim());
-    if ((role ?? "").toUpperCase() !== ENTERPRISE_ROLE) {
-      throw new ForbiddenException("Only ENTERPRISE can list product batches (minted ref100).");
-    }
-    const items = await this.product.listBatches(profileId);
+    const items = await this.product.listBatches(user.profileId);
     return { total: items.length, items };
   }
 
   @Post("mint")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ENTERPRISE")
   async mint(
     @Body() body: MintProductDto,
-    @Query("token") token?: string,
+    @CurrentUser() user: AuthUser,
   ): Promise<{ unsignedTx: string; policyId?: string }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    const role = await this.auth.getProfileRoleFromToken(token.trim());
-    if ((role ?? "").toUpperCase() !== ENTERPRISE_ROLE) {
-      throw new ForbiddenException("Only ENTERPRISE can mint (ProductBatch/ref100). Other roles can only burn NFT 222.");
-    }
     if (!body.changeAddress || !body.assetName) {
       throw new BadRequestException("Missing changeAddress or assetName");
     }
@@ -87,17 +77,12 @@ export class ProductController {
   }
 
   @Post("update")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ENTERPRISE")
   async update(
     @Body() body: UpdateProductDto,
-    @Query("token") token?: string,
+    @CurrentUser() user: AuthUser,
   ): Promise<{ unsignedTx: string }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    const role = await this.auth.getProfileRoleFromToken(token.trim());
-    if ((role ?? "").toUpperCase() !== ENTERPRISE_ROLE) {
-      throw new ForbiddenException("Only ENTERPRISE can update (ProductBatch/ref100).");
-    }
     if (!body.changeAddress || !body.assetName) {
       throw new BadRequestException("Missing changeAddress or assetName");
     }
@@ -134,17 +119,12 @@ export class ProductController {
   }
 
   @Post("revoke")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ENTERPRISE")
   async revoke(
     @Body() body: RevokeProductDto,
-    @Query("token") token?: string,
+    @CurrentUser() user: AuthUser,
   ): Promise<{ unsignedTx: string }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    const role = await this.auth.getProfileRoleFromToken(token.trim());
-    if ((role ?? "").toUpperCase() !== ENTERPRISE_ROLE) {
-      throw new ForbiddenException("Only ENTERPRISE can revoke (ProductBatch/ref100).");
-    }
     if (!body.changeAddress || !body.assetName) {
       throw new BadRequestException("Missing changeAddress or assetName");
     }
@@ -175,17 +155,12 @@ export class ProductController {
   }
 
   @Post("mint/confirm")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ENTERPRISE")
   async mintConfirm(
     @Body() body: MintConfirmDto,
-    @Query("token") token?: string,
+    @CurrentUser() user: AuthUser,
   ): Promise<{ ok: boolean }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    const role = await this.auth.getProfileRoleFromToken(token.trim());
-    if ((role ?? "").toUpperCase() !== ENTERPRISE_ROLE) {
-      throw new ForbiddenException("Only ENTERPRISE can confirm mint.");
-    }
     if (!body.txHash || !body.assetName || !body.name || body.minterProfileId == null) {
       throw new BadRequestException("Missing txHash, assetName, name or minterProfileId");
     }
@@ -208,17 +183,12 @@ export class ProductController {
   }
 
   @Post("update/confirm")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ENTERPRISE")
   async updateConfirm(
     @Body() body: UpdateConfirmDto,
-    @Query("token") token?: string,
+    @CurrentUser() user: AuthUser,
   ): Promise<{ ok: boolean }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    const role = await this.auth.getProfileRoleFromToken(token.trim());
-    if ((role ?? "").toUpperCase() !== ENTERPRISE_ROLE) {
-      throw new ForbiddenException("Only ENTERPRISE can confirm update.");
-    }
     if (!body.txHash || !body.assetName || body.profileId == null) {
       throw new BadRequestException("Missing txHash, assetName or profileId");
     }
@@ -255,17 +225,12 @@ export class ProductController {
   }
 
   @Get("roadmap")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ENTERPRISE")
   async getRoadmap(
     @Query("code") code: string | undefined,
-    @Query("token") token?: string,
+    @CurrentUser() user: AuthUser,
   ): Promise<{ items: { stepIndex: number; toAddress: string | null }[] }> {
-    if (!token || typeof token !== "string" || !token.trim()) {
-      throw new UnauthorizedException("Missing or invalid token.");
-    }
-    const role = await this.auth.getProfileRoleFromToken(token.trim());
-    if ((role ?? "").toUpperCase() !== ENTERPRISE_ROLE) {
-      throw new ForbiddenException("Only ENTERPRISE can read product roadmap.");
-    }
     if (!code || typeof code !== "string" || !code.trim()) {
       return { items: [] };
     }

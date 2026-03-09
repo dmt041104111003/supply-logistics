@@ -6,10 +6,13 @@ export async function uploadImage(
   body: { imageDataUrl: string; folder?: string },
 ): Promise<{ url: string }> {
   const res = await fetch(
-    `${BACKEND_URL}/upload/image?token=${encodeURIComponent(token)}`,
+    `${BACKEND_URL}/upload/image`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(body),
     },
   );
