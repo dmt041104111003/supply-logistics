@@ -28,9 +28,3 @@ export type TraceData = {
   /** When set, data is a snapshot at this ref100 update tx (not current state). */
   snapshotAtTxHash?: string | null;
 };
-
-export type TraceIdParams = {
-  policyId: string;
-  assetName: string;
-  owners?: string[];
-};

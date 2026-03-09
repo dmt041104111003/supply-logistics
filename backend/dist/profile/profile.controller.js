@@ -17,6 +17,12 @@ const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const profile_service_1 = require("./profile.service");
+function requireNonEmpty(value, message) {
+    const s = typeof value === "string" ? value.trim() : "";
+    if (!s)
+        throw new common_1.BadRequestException(message);
+    return s;
+}
 let ProfileController = class ProfileController {
     constructor(profileService) {
         this.profileService = profileService;
@@ -25,28 +31,18 @@ let ProfileController = class ProfileController {
         return this.profileService.listProfiles();
     }
     async listProfilesByRole(_user, role) {
-        if (!(role === null || role === void 0 ? void 0 : role.trim())) {
-            throw new common_1.HttpException({ error: "Missing role" }, common_1.HttpStatus.BAD_REQUEST);
-        }
-        return this.profileService.listProfilesByRoleCode(role.trim());
+        return this.profileService.listProfilesByRoleCode(requireNonEmpty(role, "Missing role"));
     }
     async updateProfile(body, user) {
-        const { displayName, location, coordinates } = body;
-        if (!displayName) {
-            throw new common_1.HttpException({ error: "Missing profile update information" }, common_1.HttpStatus.BAD_REQUEST);
-        }
+        const displayName = requireNonEmpty(body === null || body === void 0 ? void 0 : body.displayName, "Missing profile update information");
         return this.profileService.updateProfile(user.profileId, {
             displayName,
-            location,
-            coordinates,
+            location: body === null || body === void 0 ? void 0 : body.location,
+            coordinates: body === null || body === void 0 ? void 0 : body.coordinates,
         });
     }
     async uploadAvatar(body, user) {
-        const { imageDataUrl } = body;
-        if (!imageDataUrl) {
-            throw new common_1.HttpException({ error: "Missing avatar upload information" }, common_1.HttpStatus.BAD_REQUEST);
-        }
-        return this.profileService.uploadAvatar(user.profileId, imageDataUrl);
+        return this.profileService.uploadAvatar(user.profileId, requireNonEmpty(body === null || body === void 0 ? void 0 : body.imageDataUrl, "Missing avatar upload information"));
     }
 };
 exports.ProfileController = ProfileController;

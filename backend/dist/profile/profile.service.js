@@ -8,27 +8,57 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProfileService = void 0;
 const common_1 = require("@nestjs/common");
 const jwt = require("jsonwebtoken");
 const config_service_1 = require("../core/config/config.service");
-const profile_repository_1 = require("./domain/profile.repository");
 const list_profiles_use_case_1 = require("./application/use-cases/list-profiles.use-case");
 const list_profiles_by_role_use_case_1 = require("./application/use-cases/list-profiles-by-role.use-case");
 const update_profile_use_case_1 = require("./application/use-cases/update-profile.use-case");
 const upload_profile_avatar_use_case_1 = require("./application/use-cases/upload-profile-avatar.use-case");
 let ProfileService = class ProfileService {
-    constructor(config, profileRepository, listProfilesUseCase, listProfilesByRoleUseCase, updateProfileUseCase, uploadProfileAvatarUseCase) {
+    constructor(config, listProfilesUseCase, listProfilesByRoleUseCase, updateProfileUseCase, uploadProfileAvatarUseCase) {
         this.config = config;
-        this.profileRepository = profileRepository;
         this.listProfilesUseCase = listProfilesUseCase;
         this.listProfilesByRoleUseCase = listProfilesByRoleUseCase;
         this.updateProfileUseCase = updateProfileUseCase;
         this.uploadProfileAvatarUseCase = uploadProfileAvatarUseCase;
+    }
+    getJwtSecretOrThrow() {
+        const secret = this.config.jwtSecret;
+        if (!secret) {
+            throw new common_1.UnauthorizedException("JWT_SECRET is not configured.");
+        }
+        return secret;
+    }
+    signProfileToken(profile) {
+        const secret = this.getJwtSecretOrThrow();
+        const payload = {
+            sub: profile.walletAddress,
+            stakeAddress: profile.walletAddress,
+            profileId: profile.id,
+            role: profile.roleCode,
+            displayName: profile.displayName,
+            avatarUrl: profile.avatarUrl,
+            location: profile.location,
+            coordinates: profile.coordinates,
+        };
+        return jwt.sign(payload, secret, { expiresIn: "7d" });
+    }
+    toTokenResponse(profile) {
+        var _a, _b;
+        return {
+            token: this.signProfileToken(profile),
+            profile: {
+                id: profile.id,
+                role: profile.roleCode,
+                displayName: profile.displayName,
+                avatarUrl: profile.avatarUrl,
+                location: (_a = profile.location) !== null && _a !== void 0 ? _a : null,
+                coordinates: (_b = profile.coordinates) !== null && _b !== void 0 ? _b : null,
+            },
+        };
     }
     async listProfiles() {
         return this.listProfilesUseCase.execute();
@@ -37,71 +67,19 @@ let ProfileService = class ProfileService {
         return this.listProfilesByRoleUseCase.execute(roleCode);
     }
     async updateProfile(profileId, params) {
-        var _a, _b;
-        const secret = this.config.jwtSecret;
-        if (!secret) {
-            throw new common_1.UnauthorizedException("JWT_SECRET is not configured.");
-        }
         const profile = await this.updateProfileUseCase.execute(profileId, params);
-        const nextPayload = {
-            sub: profile.walletAddress,
-            stakeAddress: profile.walletAddress,
-            profileId: profile.id,
-            role: profile.roleCode,
-            displayName: profile.displayName,
-            avatarUrl: profile.avatarUrl,
-            location: profile.location,
-            coordinates: profile.coordinates,
-        };
-        const nextToken = jwt.sign(nextPayload, secret, { expiresIn: "7d" });
-        return {
-            token: nextToken,
-            profile: {
-                id: profile.id,
-                role: profile.roleCode,
-                displayName: profile.displayName,
-                avatarUrl: profile.avatarUrl,
-                location: (_a = profile.location) !== null && _a !== void 0 ? _a : null,
-                coordinates: (_b = profile.coordinates) !== null && _b !== void 0 ? _b : null,
-            },
-        };
+        return this.toTokenResponse(profile);
     }
     async uploadAvatar(profileId, imageDataUrl) {
-        var _a, _b;
-        const secret = this.config.jwtSecret;
-        if (!secret) {
-            throw new common_1.UnauthorizedException("JWT_SECRET is not configured.");
-        }
         const profile = await this.uploadProfileAvatarUseCase.execute(profileId, imageDataUrl);
-        const nextPayload = {
-            sub: profile.walletAddress,
-            stakeAddress: profile.walletAddress,
-            profileId: profile.id,
-            role: profile.roleCode,
-            displayName: profile.displayName,
-            avatarUrl: profile.avatarUrl,
-            location: profile.location,
-            coordinates: profile.coordinates,
-        };
-        const nextToken = jwt.sign(nextPayload, secret, { expiresIn: "7d" });
-        return {
-            token: nextToken,
-            profile: {
-                id: profile.id,
-                role: profile.roleCode,
-                displayName: profile.displayName,
-                avatarUrl: profile.avatarUrl,
-                location: (_a = profile.location) !== null && _a !== void 0 ? _a : null,
-                coordinates: (_b = profile.coordinates) !== null && _b !== void 0 ? _b : null,
-            },
-        };
+        return this.toTokenResponse(profile);
     }
 };
 exports.ProfileService = ProfileService;
 exports.ProfileService = ProfileService = __decorate([
     (0, common_1.Injectable)(),
-    __param(1, (0, common_1.Inject)(profile_repository_1.PROFILE_REPOSITORY)),
-    __metadata("design:paramtypes", [config_service_1.ConfigService, Object, list_profiles_use_case_1.ListProfilesUseCase,
+    __metadata("design:paramtypes", [config_service_1.ConfigService,
+        list_profiles_use_case_1.ListProfilesUseCase,
         list_profiles_by_role_use_case_1.ListProfilesByRoleUseCase,
         update_profile_use_case_1.UpdateProfileUseCase,
         upload_profile_avatar_use_case_1.UploadProfileAvatarUseCase])

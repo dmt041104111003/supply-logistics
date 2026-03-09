@@ -71,7 +71,7 @@ export default function TraceResultPage() {
       setError('Invalid trace ID.');
       return;
     }
-    fetchTrace(parsed.policyId, parsed.assetName, undefined, parsed.owners, atTxHash ?? undefined)
+    fetchTrace(parsed.policyId, parsed.assetName, undefined, atTxHash ?? undefined)
       .then(setData)
       .catch((err) => setError((err as Error).message ?? 'Failed to load trace.'))
       .finally(() => setLoading(false));

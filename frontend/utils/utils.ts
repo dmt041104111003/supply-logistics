@@ -1,21 +1,19 @@
-export function decodeTraceId(id: string): { policyId: string; assetName: string; owners?: string[] } | null {
+export function decodeTraceId(id: string): { policyId: string; assetName: string } | null {
   try {
     const decoded = decodeURIComponent(id);
     const json =
       typeof atob !== 'undefined'
         ? atob(decoded)
         : Buffer.from(decoded, 'base64').toString('utf8');
-    const parsed = JSON.parse(json) as { policyId: string; assetName: string; owners?: string[] };
-    return { policyId: parsed.policyId, assetName: parsed.assetName, owners: parsed.owners };
+    const parsed = JSON.parse(json) as { policyId: string; assetName: string };
+    return { policyId: parsed.policyId, assetName: parsed.assetName };
   } catch {
     return null;
   }
 }
 
-export function encodeTraceId(policyId: string, assetName: string, owners?: string[]): string {
-  const payload = JSON.stringify(
-    owners?.length ? { policyId, assetName, owners } : { policyId, assetName }
-  );
+export function encodeTraceId(policyId: string, assetName: string): string {
+  const payload = JSON.stringify({ policyId, assetName });
   const base64 =
     typeof Buffer !== 'undefined'
       ? Buffer.from(payload, 'utf8').toString('base64')

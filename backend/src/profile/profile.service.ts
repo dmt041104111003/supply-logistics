@@ -1,10 +1,7 @@
-import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import * as jwt from "jsonwebtoken";
 import { ConfigService } from "../core/config/config.service";
-import {
-  PROFILE_REPOSITORY,
-  ProfileRepositoryPort,
-} from "./domain/profile.repository";
+import type { UpdatedProfileWithRelations } from "./domain/profile.repository";
 import { ListProfilesUseCase } from "./application/use-cases/list-profiles.use-case";
 import { ListProfilesByRoleUseCase } from "./application/use-cases/list-profiles-by-role.use-case";
 import { UpdateProfileUseCase } from "./application/use-cases/update-profile.use-case";
@@ -14,13 +11,58 @@ import { UploadProfileAvatarUseCase } from "./application/use-cases/upload-profi
 export class ProfileService {
   constructor(
     private readonly config: ConfigService,
-    @Inject(PROFILE_REPOSITORY)
-    private readonly profileRepository: ProfileRepositoryPort,
     private readonly listProfilesUseCase: ListProfilesUseCase,
     private readonly listProfilesByRoleUseCase: ListProfilesByRoleUseCase,
     private readonly updateProfileUseCase: UpdateProfileUseCase,
     private readonly uploadProfileAvatarUseCase: UploadProfileAvatarUseCase
   ) {}
+
+  private getJwtSecretOrThrow(): string {
+    const secret = this.config.jwtSecret;
+    if (!secret) {
+      throw new UnauthorizedException("JWT_SECRET is not configured.");
+    }
+    return secret;
+  }
+
+  private signProfileToken(profile: UpdatedProfileWithRelations): string {
+    const secret = this.getJwtSecretOrThrow();
+    const payload = {
+      sub: profile.walletAddress,
+      stakeAddress: profile.walletAddress,
+      profileId: profile.id,
+      role: profile.roleCode,
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl,
+      location: profile.location,
+      coordinates: profile.coordinates,
+    };
+    return jwt.sign(payload, secret, { expiresIn: "7d" });
+  }
+
+  private toTokenResponse(profile: UpdatedProfileWithRelations): {
+    token: string;
+    profile: {
+      id: number;
+      role: string;
+      displayName: string;
+      avatarUrl: string | null;
+      location: string | null;
+      coordinates: string | null;
+    };
+  } {
+    return {
+      token: this.signProfileToken(profile),
+      profile: {
+        id: profile.id,
+        role: profile.roleCode,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        location: profile.location ?? null,
+        coordinates: profile.coordinates ?? null,
+      },
+    };
+  }
 
   async listProfiles(): Promise<
     { walletAddress: string; displayName: string; location: string | null; coordinates: string | null; role: string | null }[]
@@ -43,33 +85,8 @@ export class ProfileService {
       coordinates: string | null;
     };
   }> {
-    const secret = this.config.jwtSecret;
-    if (!secret) {
-      throw new UnauthorizedException("JWT_SECRET is not configured.");
-    }
     const profile = await this.updateProfileUseCase.execute(profileId, params);
-    const nextPayload = {
-      sub: profile.walletAddress,
-      stakeAddress: profile.walletAddress,
-      profileId: profile.id,
-      role: profile.roleCode,
-      displayName: profile.displayName,
-      avatarUrl: profile.avatarUrl,
-      location: profile.location,
-      coordinates: profile.coordinates,
-    };
-    const nextToken = jwt.sign(nextPayload, secret, { expiresIn: "7d" });
-    return {
-      token: nextToken,
-      profile: {
-        id: profile.id,
-        role: profile.roleCode,
-        displayName: profile.displayName,
-        avatarUrl: profile.avatarUrl,
-        location: profile.location ?? null,
-        coordinates: profile.coordinates ?? null,
-      },
-    };
+    return this.toTokenResponse(profile);
   }
 
   async uploadAvatar(profileId: number, imageDataUrl: string): Promise<{
@@ -83,32 +100,7 @@ export class ProfileService {
       coordinates: string | null;
     };
   }> {
-    const secret = this.config.jwtSecret;
-    if (!secret) {
-      throw new UnauthorizedException("JWT_SECRET is not configured.");
-    }
     const profile = await this.uploadProfileAvatarUseCase.execute(profileId, imageDataUrl);
-    const nextPayload = {
-      sub: profile.walletAddress,
-      stakeAddress: profile.walletAddress,
-      profileId: profile.id,
-      role: profile.roleCode,
-      displayName: profile.displayName,
-      avatarUrl: profile.avatarUrl,
-      location: profile.location,
-      coordinates: profile.coordinates,
-    };
-    const nextToken = jwt.sign(nextPayload, secret, { expiresIn: "7d" });
-    return {
-      token: nextToken,
-      profile: {
-        id: profile.id,
-        role: profile.roleCode,
-        displayName: profile.displayName,
-        avatarUrl: profile.avatarUrl,
-        location: profile.location ?? null,
-        coordinates: profile.coordinates ?? null,
-      },
-    };
+    return this.toTokenResponse(profile);
   }
 }

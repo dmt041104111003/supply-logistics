@@ -1,8 +1,14 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthUser } from "../auth/types/auth-user";
 import { ProfileService } from "./profile.service";
+
+function requireNonEmpty(value: unknown, message: string): string {
+  const s = typeof value === "string" ? value.trim() : "";
+  if (!s) throw new BadRequestException(message);
+  return s;
+}
 
 @Controller("profile")
 export class ProfileController {
@@ -22,13 +28,9 @@ export class ProfileController {
     @CurrentUser() _user: AuthUser,
     @Query("role") role?: string,
   ) {
-    if (!role?.trim()) {
-      throw new HttpException(
-        { error: "Missing role" },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-    return this.profileService.listProfilesByRoleCode(role.trim());
+    return this.profileService.listProfilesByRoleCode(
+      requireNonEmpty(role, "Missing role"),
+    );
   }
 
   @Patch()
@@ -42,19 +44,14 @@ export class ProfileController {
     },
     @CurrentUser() user: AuthUser,
   ) {
-    const { displayName, location, coordinates } = body;
-
-    if (!displayName) {
-      throw new HttpException(
-        { error: "Missing profile update information" },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
+    const displayName = requireNonEmpty(
+      body?.displayName,
+      "Missing profile update information",
+    );
     return this.profileService.updateProfile(user.profileId, {
       displayName,
-      location,
-      coordinates,
+      location: body?.location,
+      coordinates: body?.coordinates,
     });
   }
 
@@ -67,15 +64,9 @@ export class ProfileController {
     },
     @CurrentUser() user: AuthUser,
   ) {
-    const { imageDataUrl } = body;
-
-    if (!imageDataUrl) {
-      throw new HttpException(
-        { error: "Missing avatar upload information" },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    return this.profileService.uploadAvatar(user.profileId, imageDataUrl);
+    return this.profileService.uploadAvatar(
+      user.profileId,
+      requireNonEmpty(body?.imageDataUrl, "Missing avatar upload information"),
+    );
   }
 }

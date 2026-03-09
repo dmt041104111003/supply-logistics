@@ -503,7 +503,7 @@ export default function ProductsPage() {
         alert('Policy ID not found for this batch.');
         return;
       }
-      const traceId = encodeTraceId(info.policyId, info.assetName, undefined);
+      const traceId = encodeTraceId(info.policyId, info.assetName);
       const origin =
         typeof window !== 'undefined'
           ? window.location.origin.replace(/\/+$/, '')

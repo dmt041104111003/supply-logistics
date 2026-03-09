@@ -39,10 +39,9 @@ export async function fetchTrace(
   policyId: string,
   assetName: string,
   minterAddress?: string,
-  owners?: string[],
   atTxHash?: string | null,
 ): Promise<TraceData> {
-  const minter = minterAddress?.trim() || (owners?.length ? owners[0]?.trim() : undefined);
+  const minter = minterAddress?.trim() || undefined;
   const params = new URLSearchParams({
     policyId: policyId.trim(),
     assetName: assetName.trim(),
@@ -98,19 +97,18 @@ export async function fetchTrace(
 
 export async function submitTraceForm(
   policyId: string,
-  assetName: string,
-  owners?: string[],
+  assetName: string
 ): Promise<string> {
   const p = policyId.trim();
   const a = assetName.trim();
   const res = await fetch(`${BACKEND_URL}/trace`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ policyId: p, assetName: a, owners: owners ?? [] }),
+    body: JSON.stringify({ policyId: p, assetName: a }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(data?.message ?? data?.error ?? 'Trace failed.');
   }
-  return encodeTraceId(p, a, owners?.length ? owners : undefined);
+  return encodeTraceId(p, a);
 }
