@@ -1,7 +1,7 @@
 ## Trace.Lab3 – On-chain Product Traceability
 
 ### Demo
-[![Watch the video](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
+[![Watch the video](https://img.youtube.com/vi/LlQ42mELrss/0.jpg)](https://www.youtube.com/watch?v=LlQ42mELrss)
 
 ---
 
